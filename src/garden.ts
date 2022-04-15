@@ -2,11 +2,10 @@ import {
   Garden,
   GardenItem,
   GardenConfig,
-  GardenFile,
   UUID,
   Slug,
 } from './types';
-import { createSolidDataset, createThing, getThing, setThing, setUrl } from '@inrupt/solid-client';
+import { createSolidDataset, createThing, getThing, getThingAll, setThing, setUrl } from '@inrupt/solid-client';
 import { OWL } from '@inrupt/vocab-common-rdf';
 import {
   getUUID,
@@ -15,21 +14,25 @@ import {
   uuidUrn,
   slugToUrl,
 } from './utils';
-import { getSolidDatasetWithAccessDatasets } from '@inrupt/solid-client/dist/acp/acp';
+import { isItem } from './items';
 
-export function getItemWithUUID(garden: Garden, uuid: UUID): GardenItem {
+export function getItemWithUUID(garden: Garden, uuid: UUID): GardenItem | null {
   return garden && getThing(garden, uuid);
 }
 
-export function getItemWithSlug(garden: Garden, slug: Slug): GardenItem {
+export function getItemWithSlug(garden: Garden, slug: Slug): GardenItem | null {
   const ptr = garden && getThing(garden, slugToUrl(garden, slug));
-  const uuid = garden && getUUID(ptr);
-  return garden && getItemWithUUID(garden, uuid);
+  const uuid = garden && ptr && getUUID(ptr);
+  return garden && uuid && getItemWithUUID(garden, uuid);
 }
 
-export function getItemWithTitle(garden: Garden, title: string): GardenItem {
+export function getItemWithTitle(garden: Garden, title: string): GardenItem | null {
   const slug = encodeBase58Slug(title);
   return garden && getItemWithSlug(garden, slug);
+}
+
+export function getItemAll(garden: Garden): GardenItem[] {
+  return garden && getThingAll(garden).filter(isItem);
 }
 
 export function setItemWithUUID(garden: Garden, item: GardenItem): Garden {
@@ -60,7 +63,7 @@ export function setItemWithTitle(
 }
 
 const ConfigSlug = 'garden';
-export function getConfig(garden: Garden): GardenConfig {
+export function getConfig(garden: Garden): GardenConfig | null {
   return garden && getItemWithSlug(garden, ConfigSlug);
 }
 

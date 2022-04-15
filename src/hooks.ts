@@ -8,15 +8,15 @@ import {
   Slug,
   AppSettings,
   GardenConfig,
+  GardenItemType,
 } from './types';
 import {
   createGarden,
   getConfig,
+  getItemAll
 } from './garden';
 import {
   WebId,
-  createSolidDataset,
-  UrlString,
   access,
   Thing,
   getSourceUrl,
@@ -52,12 +52,14 @@ import {
   slugToUrl,
   uuidUrn,
 } from './utils';
-import { useCallback } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { getItemType, getTitle } from './items';
+import Fuse from "fuse.js";
 
 export type GardenResult = ResourceResult & {
   garden: Garden;
   saveGarden: any;
-  config: GardenConfig;
+  config: GardenConfig | null;
 };
 export type GardenWithPublicAccessResult = GardenResult & {
   publicAccess: access.Access;
@@ -66,7 +68,7 @@ export type GardenWithPublicAccessResult = GardenResult & {
 export type GardenWithSetupResult = GardenWithPublicAccessResult & {
   setupGarden: any;
 };
-export type FilteredGardenResult = { garden: Garden };
+export type FilteredGardenResult = { filtered: GardenItem[] };
 export type GardenItemResult = ThingResult & {
   item: GardenItem;
   saveToGarden: any;
@@ -91,6 +93,11 @@ export type GardenFilter = {
   // but leave room for additional filter criteria later.
   search: string;
 };
+type FuseEntry = {
+  name: string | null,
+  type: GardenItemType | null,
+  gardenItem: GardenItem
+}
 
 export function useGardenItem(index: GardenFile, uuid: UUID): GardenItemResult {
   const res = useThingInResource(index, asUrlString(uuid)) as GardenItemResult;
@@ -121,16 +128,45 @@ export function useTitledGardenIten(
   return res
 }
 
+function fuseEntryFromGardenItem(item: GardenItem): FuseEntry {
+  return {
+    gardenItem: item,
+    type: getItemType(item),
+    name: getTitle(item),
+  };
+}
+
+function fuseFromGarden(garden: Garden): FuseEntry[] {
+  return garden && getItemAll(garden).map(fuseEntryFromGardenItem);
+}
+
+export function useFuse(garden: Garden) {
+const options: Fuse.IFuseOptions<FuseEntry> = {
+  includeScore: true,
+  threshold: 0.3,
+  keys: ['name'],
+};
+  const [fuse] = useState(new Fuse([], options));
+  return useMemo(() => {
+    fuse.setCollection(fuseFromGarden(garden) || []);
+    return { fuse };
+  }, [garden]);
+}
+
 export function useFilteredGarden(
   index: GardenFile,
   filter: GardenFilter
 ): FilteredGardenResult {
-  // call use garden
   const { garden } = useGarden(index);
-  // filter with Fuse
-  return {
-    garden,
-  };
+  const { fuse } = useFuse(garden);
+  return useMemo(() => {
+    if (filter.search) {
+      const result = fuse.search(filter.search);
+      return { filtered: result.map(({ item }) => item.gardenItem) };
+    } else {
+      return { filtered: getItemAll(garden)};
+    }
+  }, [garden, filter]);
 }
 
 export function useGarden(index: GardenFile): GardenResult {

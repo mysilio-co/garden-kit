@@ -24,22 +24,29 @@ import { hasRDFType, slugToUrl } from './utils';
 import { RDF } from '@inrupt/vocab-common-rdf';
 import { MY } from './vocab';
 
-export function getRootContainer(profile: Profile): Container {
+export function getRootContainer(profile: Profile): Container | null {
   // TODO: What should we do if there is no storage set?
   return profile && getUrl(profile, WS.storage);
 }
 
+export function defaultSpacePreferencesFile(
+  root: Container
+): SpacePreferencesFile {
+  return new URL('settings/prefs.ttl', root).toString();
+}
+
 export function getSpacePreferencesFile(
   profile: Profile
-): SpacePreferencesFile {
+): SpacePreferencesFile | null {
+  const root = getRootContainer(profile)
+  const defaultPath = root && defaultSpacePreferencesFile(root)
   return (
     profile &&
-    (getUrl(profile, WS.preferencesFile) ||
-      new URL('settings/prefs.ttl', getRootContainer(profile)).toString())
+    (getUrl(profile, WS.preferencesFile) || defaultPath)
   );
 }
 
-export function getContainer(space: Space): Container {
+export function getContainer(space: Space): Container | null {
   return space && getUrl(space, WS.storage);
 }
 
@@ -47,11 +54,11 @@ export function getGardenFileAll(space: Space): GardenFile[] {
   return space && getUrlAll(space, MY.Garden.hasGarden);
 }
 
-export function getCompostFile(space: Space): GardenFile {
+export function getCompostFile(space: Space): GardenFile | null {
   return space && getUrl(space, MY.Garden.hasCompost);
 }
 
-export function getNurseryFile(space: Space): GardenFile {
+export function getNurseryFile(space: Space): GardenFile  | null {
   return space && getUrl(space, MY.Garden.hasNursery);
 }
 
@@ -67,7 +74,7 @@ export function isMetaSpace(thing: Thing): boolean {
   return thing && hasRDFType(thing, MY.Garden.MetaSpace);
 }
 
-export function getSpace(spaces: SpacePreferences, slug: Slug): Space {
+export function getSpace(spaces: SpacePreferences, slug: Slug): Space | null {
   return spaces && getThing(spaces, slugToUrl(spaces, slug));
 }
 
@@ -114,7 +121,7 @@ export function createSpace(
 
 export const MetaSpaceSlug = 'spaces';
 export const HomeSpaceSlug = 'home'
-export function getMetaSpace(spaces: SpacePreferences): Space {
+export function getMetaSpace(spaces: SpacePreferences): Space | null {
   return spaces && getSpace(spaces, MetaSpaceSlug);
 }
 
@@ -127,17 +134,19 @@ export function setMetaSpace(
 }
 
 export function hasRequiredSpaces(spaces: SpacePreferences): boolean {
-  return spaces && getMetaSpace(spaces) && getSpaceAll(spaces).length > 0;
+  return spaces && !!getMetaSpace(spaces) && getSpaceAll(spaces).length > 0;
 }
 
 export function createMetaSpace(holder: WebId, profile: Profile) {
-  return buildThing(createThing({ name: MetaSpaceSlug }))
-    .addUrl(MY.Garden.holder, holder)
-    .addUrl(RDF.type, WS.MasterWorkspace)
-    .addUrl(RDF.type, MY.Garden.MetaSpace)
-    .addUrl(
-      WS.storage,
-      new URL('spaces/', getRootContainer(profile)).toString()
-    )
-    .build();
+  const root = getRootContainer(profile);
+  if (root) {
+    return buildThing(createThing({ name: MetaSpaceSlug }))
+      .addUrl(MY.Garden.holder, holder)
+      .addUrl(RDF.type, WS.MasterWorkspace)
+      .addUrl(RDF.type, MY.Garden.MetaSpace)
+      .addUrl(WS.storage, new URL('spaces/', root).toString())
+      .build();
+  } else {
+    throw new Error(`No storage found in WebID: ${holder}`);
+  }
 }

@@ -7,7 +7,8 @@ import {
   PersonConcept,
   Collection,
   GardenItem,
-  UUID
+  UUID,
+  GardenItemType,
 } from './types';
 import {
   buildThing,
@@ -26,6 +27,7 @@ import {
   addRDFTypes,
   addRDFType,
 } from './utils';
+import { isAcpControlled } from '@inrupt/solid-client/dist/acp/acp';
 
 interface CreateItemOptions {
   title?: string;
@@ -44,6 +46,27 @@ interface PersonOptions {
 type CreateUploadOptions = CreateItemOptions & UploadOptions;
 type CreatePersonOptions = CreateItemOptions & PersonOptions;
 type Options = CreatePersonOptions & CreateUploadOptions;
+
+export function isItem(thing: Thing): boolean {
+  return hasRDFType(thing, MY.Garden.Item);
+}
+
+export function getItemType(item: GardenItem): GardenItemType | null {
+  if (isNote(item)) {
+    return 'note';
+  } else if (isFile(item)) {
+    return 'file';
+  } else if (isImage(item)) {
+    return 'image';
+  } else if (isBookmark(item)) {
+    return 'bookmark';
+  } else if (isPerson(item)) {
+    return 'person';
+  } else if (isCollection(item)) {
+    return 'collection';
+  }
+  return null;
+}
 
 export function isImage(concept: Concept): boolean {
   return hasRDFType(concept, MY.Garden.Image);
@@ -65,23 +88,27 @@ export function isPerson(concept: Concept): boolean {
   return hasRDFType(concept, MY.Garden.Person);
 }
 
-export function getTitle(concept: Concept): string | undefined {
+export function isCollection(item: GardenItem): boolean {
+  return hasRDFType(item, MY.Garden.Collection);
+}
+
+export function getTitle(concept: Concept): string | null {
   return getStringNoLocale(concept, DCTERMS.title);
 }
 
-export function getDescription(concept: Concept): string | undefined {
+export function getDescription(concept: Concept): string | null {
   return getStringNoLocale(concept, DCTERMS.description);
 }
 
-export function getDepiction(concept: Concept): UrlString | undefined {
+export function getDepiction(concept: Concept): UrlString | null {
   return getUrl(concept, FOAF.depiction);
 }
 
-export function getCreator(concept: Concept): UrlString | undefined {
+export function getCreator(concept: Concept): UrlString | null {
   return getUrl(concept, DCTERMS.creator);
 }
 
-export function getAbout(concept: Concept): UrlString | undefined {
+export function getAbout(concept: Concept): UrlString | null {
   return getUrl(concept, SIOC.about)
 }
 
@@ -142,7 +169,9 @@ export function createConcept(
 ): Concept {
   let concept = createItem(webId);
   concept = addRDFTypes(concept, [SKOS.Concept, MY.Garden.Concept, SIOC.Item]);
-  concept = setOptions(concept, options);
+  if (options) {
+    concept = setOptions(concept, options);
+  }
   concept = setAbout(concept, about);
   return concept;
 }
@@ -202,7 +231,9 @@ export function createCollection(
   options?: CreateItemOptions
 ): Collection {
   let collection = createItem(webId);
-  collection = setOptions(collection, options);
+  if (options) {
+    collection = setOptions(collection, options);
+  }
   collection = addRDFTypes(collection, [SKOS.Collection, MY.Garden.Collection]);
   return collection
 };

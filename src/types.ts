@@ -32,6 +32,13 @@ export type GardenConfig = Thing;
 export type GardenFile = UrlString;
 
 export type GardenItem = Thing;
+export type GardenItemType =
+  | 'note'
+  | 'file'
+  | 'image'
+  | 'bookmark'
+  | 'person'
+  | 'collection';
 export type Concept = GardenItem;
 export type Collection = GardenItem;
 // prefixed with Garden to avoid type conflicts with default TS types for File, etc
