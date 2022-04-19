@@ -2,44 +2,50 @@ import {
   Garden,
   GardenItem,
   GardenConfig,
-  UUID,
+  UUIDString,
   Slug,
 } from './types';
-import { createSolidDataset, createThing, getThing, getThingAll, setThing, setUrl } from '@inrupt/solid-client';
-import { OWL } from '@inrupt/vocab-common-rdf';
+import {
+  createSolidDataset,
+  createThing,
+  getThing,
+  getThingAll,
+  setThing,
+} from '@inrupt/solid-client';
 import {
   getUUID,
   encodeBase58Slug,
   createPtr,
-  uuidUrn,
   slugToUrl,
+  addUUID,
 } from './utils';
 import { isItem } from './items';
 
-export function getItemWithUUID(garden: Garden, uuid: UUID): GardenItem | null {
-  return garden && getThing(garden, uuid);
+export function getItemWithUUID(garden: Garden, uuid: UUIDString): GardenItem | null {
+  return getThing(garden, uuid);
 }
 
 export function getItemWithSlug(garden: Garden, slug: Slug): GardenItem | null {
-  const ptr = garden && getThing(garden, slugToUrl(garden, slug));
-  const uuid = garden && ptr && getUUID(ptr);
-  return garden && uuid && getItemWithUUID(garden, uuid);
+  const thingUrl = slugToUrl(garden, slug);
+  const ptr = thingUrl && getThing(garden, thingUrl);
+  const uuid = ptr && getUUID(ptr);
+  return uuid ? getItemWithUUID(garden, uuid) : null;
 }
 
 export function getItemWithTitle(garden: Garden, title: string): GardenItem | null {
   const slug = encodeBase58Slug(title);
-  return garden && getItemWithSlug(garden, slug);
+  return getItemWithSlug(garden, slug);
 }
 
 export function getItemAll(garden: Garden): GardenItem[] {
-  return garden && getThingAll(garden).filter(isItem);
+  return getThingAll(garden).filter(isItem);
 }
 
 export function setItemWithUUID(garden: Garden, item: GardenItem): Garden {
   if (!getUUID(item)) {
-    item = item && setUrl(item, OWL.sameAs, uuidUrn());
+    item = addUUID(item);
   }
-  return garden && setThing(garden, item);
+  return setThing(garden, item);
 }
 
 export function setItemWithSlug(
@@ -47,9 +53,10 @@ export function setItemWithSlug(
   slug: Slug,
   item: GardenItem
 ): Garden {
-  const uuid = item && getUUID(item);
-  garden = garden && setItemWithUUID(garden, item);
-  garden = garden && setThing(garden, createPtr(slug, uuid));
+  garden = setItemWithUUID(garden, item);
+  // setItemWithUUID adds a UUID if there isn't one, so this should never be null
+  const uuid = getUUID(item) as UUIDString;
+  garden = setThing(garden, createPtr(slug, uuid));
   return garden;
 }
 
@@ -59,12 +66,12 @@ export function setItemWithTitle(
   item: GardenItem
 ): Garden {
   const slug = encodeBase58Slug(title);
-  return garden && setItemWithSlug(garden, slug, item);
+  return setItemWithSlug(garden, slug, item);
 }
 
 const ConfigSlug = 'garden';
 export function getConfig(garden: Garden): GardenConfig | null {
-  return garden && getItemWithSlug(garden, ConfigSlug);
+  return getItemWithSlug(garden, ConfigSlug);
 }
 
 export function createGarden(): Garden {

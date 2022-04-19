@@ -7,7 +7,6 @@ import {
   PersonConcept,
   Collection,
   GardenItem,
-  UUID,
   GardenItemType,
 } from './types';
 import {
@@ -18,6 +17,7 @@ import {
   setUrl,
   UrlString,
   WebId,
+  Thing
 } from '@inrupt/solid-client';
 import { SKOS, FOAF, DCTERMS } from '@inrupt/vocab-common-rdf';
 import { MY, SIOC } from './vocab';
@@ -27,7 +27,6 @@ import {
   addRDFTypes,
   addRDFType,
 } from './utils';
-import { isAcpControlled } from '@inrupt/solid-client/dist/acp/acp';
 
 interface CreateItemOptions {
   title?: string;
@@ -132,7 +131,7 @@ export function setAbout(concept: Concept, about: UrlString): Concept {
   return setUrl(concept, SIOC.about, about);
 }
 
-function createItem(webId: WebId, uuid?: UUID) {
+function createItem(webId: WebId) {
   return buildThing(createThingWithUUID())
     .addUrl(DCTERMS.creator, webId)
     .addDatetime(DCTERMS.created, new Date())
@@ -140,7 +139,7 @@ function createItem(webId: WebId, uuid?: UUID) {
     .build();
 }
 
-function setOptions(item: GardenItem, options: Options): GardenItem {
+function setOptions(item: GardenItem, options?: Options): GardenItem {
   if (options && options.title) {
     item = setStringNoLocale(item, DCTERMS.title, options.title);
   }
@@ -182,7 +181,7 @@ export function createImage(
   options?: CreateUploadOptions
 ): ImageConcept {
   let image = createConcept(webId, about, options);
-  image = addRDFType(image, MY.Garden.Image);
+  image = image && addRDFType(image, MY.Garden.Image);
   return image;
 }
 
@@ -192,7 +191,7 @@ export function createFile(
   options?: CreateUploadOptions
 ): FileConcept {
   let file = createConcept(webId, about, options);
-  file = addRDFType(file, MY.Garden.File);
+  file = file && addRDFType(file, MY.Garden.File);
   return file;
 }
 
@@ -202,7 +201,7 @@ export function createBookmark(
   options?: CreateItemOptions,
 ): BookmarkConcept {
   let bookmark = createConcept(webId, about, options);
-  bookmark = addRDFType(bookmark, MY.Garden.Bookmark);
+  bookmark = bookmark && addRDFType(bookmark, MY.Garden.Bookmark);
   return bookmark;
 }
 
@@ -212,7 +211,7 @@ export function createNote(
   options?: CreateItemOptions
 ): NoteConcept {
   let note = createConcept(webId, about, options);
-  note = addRDFType(note, MY.Garden.Note);
+  note = note && addRDFType(note, MY.Garden.Note);
   return note;
 }
 

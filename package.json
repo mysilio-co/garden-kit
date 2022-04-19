@@ -53,6 +53,8 @@
   },
   "dependencies": {
     "@inrupt/solid-client": "^1.21.0",
+    "@rdfjs/namespace": "^2.0.0",
+    "@scure/base": "^1.0.0",
     "@types/react": "^18.0.5",
     "fuse.js": "^6.5.3",
     "react": "^18.0.0",

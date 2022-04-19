@@ -1,25 +1,22 @@
-import { namedNode } from '@rdf-esm/data-model';
 import {
   createThing,
   asUrl,
   getUrlAll,
-  getUrl,
-  setUrl,
   addUrl,
   buildThing,
   Thing,
   UrlString,
   getSourceUrl,
+  SolidDataset
 } from '@inrupt/solid-client';
 import { RDF, OWL } from '@inrupt/vocab-common-rdf';
 import * as uuid from 'uuid';
 import { base58 } from '@scure/base';
-import { UUID, Base58Slug, Slug, MaybeUrl } from './types';
-import { Resource } from '@inrupt/solid-client/dist/interfaces';
+import { UUIDString, Base58Slug, Slug, MaybeUrl } from './types';
 
-export function uuidUrn(): UUID {
+export function uuidUrn(): UUIDString {
   // https://stackoverflow.com/questions/20342058/which-uuid-version-to-use
-  return namedNode(`urn:uuid:${uuid.v4()}`);
+  return `urn:uuid:${uuid.v4()}`;
 }
 
 export function encodeBase58Slug(s: string): Base58Slug {
@@ -43,27 +40,43 @@ export function isUUID(maybeUrl: MaybeUrl): boolean {
   );
 }
 
-export function getUUID(thing: Thing): UUID {
-  const url = thing && asUrl(thing);
-  if (!url) {
-    return undefined;
-  } else if (isUUID(url)) {
-    return namedNode(url);
+export function addUUID(thing: Thing): Thing {
+  return addUrl(thing, OWL.sameAs, uuidUrn());
+}
+
+export function getUUID(thing: Thing): UUIDString | null {
+  const url = asUrl(thing);
+  if (url && isUUID(url)) {
+    return url;
   } else {
-    return namedNode(getUrlAll(thing, OWL.sameAs).find(isUUID));
+    return getUrlAll(thing, OWL.sameAs).find(isUUID) || null;
+  }
+}
+
+export function ensureUUID(thing: Thing): Thing {
+  if (getUUID(thing)) {
+    return thing;
+  } else {
+    return addUUID(thing);
   }
 }
 
 export function createThingWithUUID(): Thing {
-  return createThing({ url: uuidUrn().value });
+  return createThing({ url: uuidUrn() });
 }
 
-export function slugToUrl(resourceOrUrl: Resource | UrlString, slug: Slug): UrlString {
-  const url = typeof resourceOrUrl === "string" ? resourceOrUrl : getSourceUrl(resourceOrUrl)
+export function slugToUrl(
+  resourceOrUrl: SolidDataset | UrlString,
+  slug: Slug
+): UrlString | null {
+  const url =
+    typeof resourceOrUrl === 'string'
+      ? resourceOrUrl
+      : getSourceUrl(resourceOrUrl);
   return url && new URL(`#${slug}`, url).toString();
 }
 
-export function createPtr(slug: Slug, uuid: UUID) {
+export function createPtr(slug: Slug, uuid: UUIDString) {
   return buildThing(createThing({ name: slug }))
     .addUrl(OWL.sameAs, uuid)
     .build();

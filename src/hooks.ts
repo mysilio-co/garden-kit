@@ -1,9 +1,7 @@
 import {
   Garden,
-  GardenFile,
   GardenItem,
   Space,
-  UUID,
   SpacePreferences,
   Slug,
   AppSettings,
@@ -16,7 +14,6 @@ import {
   getItemAll
 } from './garden';
 import {
-  WebId,
   access,
   Thing,
   getSourceUrl,
@@ -29,6 +26,7 @@ import {
   ThingResult,
   usePublicAccess,
   useThingInResource,
+  SwrlitKey,
 } from 'swrlit';
 import {
   createMetaSpace,
@@ -45,9 +43,10 @@ import {
 } from './spaces';
 import { appSettingsUrl } from './settings';
 import {
-  asUrlString,
   createPtr,
+  createThingWithUUID,
   encodeBase58Slug,
+  ensureUUID,
   getUUID,
   slugToUrl,
   uuidUrn,
@@ -99,32 +98,34 @@ type FuseEntry = {
   gardenItem: GardenItem
 }
 
-export function useGardenItem(index: GardenFile, uuid: UUID): GardenItemResult {
-  const res = useThingInResource(index, asUrlString(uuid)) as GardenItemResult;
-  res.item = res.thing;
+export function useGardenItem(
+  index: SwrlitKey,
+  uuid: SwrlitKey
+): GardenItemResult {
+  const res = useThingInResource(index, uuid) as GardenItemResult;
+  res.item = res.thing || createThingWithUUID();
   res.saveToGarden = res.save;
   return res;
 }
 
 export function useTitledGardenIten(
-  index: GardenFile,
+  index: SwrlitKey,
   title: string
 ): GardenItemResult {
   const slug = encodeBase58Slug(title);
-  const ptr = useThing(slugToUrl(index, slug));
-  const uuid = (index && getUUID(ptr.thing)) || uuidUrn();
+  const ptr = useThing(index && slugToUrl(index, slug));
+  ptr.thing = ptr.thing ? ensureUUID(ptr.thing) : createPtr(slug, uuidUrn());
+  const uuid = getUUID(ptr.thing);
   const res = useGardenItem(index, uuid);
-  res.saveToGarden = useCallback(async (newThing: Thing) => {
-    res.mutate(newThing, false);
-    if (getUUID(ptr.thing) === uuid) {
-      // ptr doesn't need updating
+  res.saveToGarden = useCallback(
+    async (newThing: Thing) => {
+      res.mutate(newThing, false);
+      await ptr.save(ptr.thing);
       await res.saveToGarden(newThing);
-    } else {
-      await ptr.save(createPtr(slug, uuid));
-      await res.saveToGarden(newThing);
-    }
-    res.mutate(newThing);
-  }, [res, ptr, slug, uuid]);
+      res.mutate(newThing);
+    },
+    [res, ptr, slug, uuid]
+  );
   return res
 }
 
@@ -154,7 +155,7 @@ const options: Fuse.IFuseOptions<FuseEntry> = {
 }
 
 export function useFilteredGarden(
-  index: GardenFile,
+  index: SwrlitKey,
   filter: GardenFilter
 ): FilteredGardenResult {
   const { garden } = useGarden(index);
@@ -169,7 +170,7 @@ export function useFilteredGarden(
   }, [garden, filter]);
 }
 
-export function useGarden(index: GardenFile): GardenResult {
+export function useGarden(index: SwrlitKey): GardenResult {
   const res = useResource(index) as GardenResult;
   const config = res.garden && getConfig(res.garden);
   res.garden = res.resource;
@@ -179,7 +180,7 @@ export function useGarden(index: GardenFile): GardenResult {
 }
 
 export function useGardenWithPublicAccess(
-  index: GardenFile
+  index: SwrlitKey
 ): GardenWithPublicAccessResult {
   const res = useGarden(index) as GardenWithPublicAccessResult;
   const { access, saveAccess } = usePublicAccess(index);
@@ -189,7 +190,7 @@ export function useGardenWithPublicAccess(
 }
 
 export function useGardenWithSetup(
-  index: GardenFile,
+  index: SwrlitKey,
   publicRead?: boolean
 ): GardenWithSetupResult {
   const res = useGardenWithPublicAccess(index) as GardenWithSetupResult;
@@ -209,7 +210,7 @@ export function useGardenWithSetup(
   return res;
 }
 
-export function useSpace(webId: WebId, slug: Slug): SpaceResult {
+export function useSpace(webId: SwrlitKey, slug: Slug): SpaceResult {
   const { spaces } = useSpaces(webId);
   const res = useThing(slugToUrl(spaces, slug)) as SpaceResult;
   res.space = res.thing;
@@ -218,19 +219,20 @@ export function useSpace(webId: WebId, slug: Slug): SpaceResult {
 }
 
 export function useSpaceWithSetup(
-  webId: WebId,
+  webId: SwrlitKey,
   slug: Slug
 ): SpaceWithSetupResult {
   const { spaces } = useSpaces(webId);
   const res = useSpace(webId, slug) as SpaceWithSetupResult;
-  const metaspace = getContainer(getMetaSpace(spaces));
-  const container = metaspace && new URL(`${slug}/`, metaspace).toString();
+  const metaspace = getMetaSpace(spaces)
+  const parent = metaspace && getContainer(metaspace);
+  const container = parent && new URL(`${slug}/`, parent).toString();
   const publicGardenUrl =
-    metaspace && new URL('public.ttl', container).toString();
+    container && new URL('public.ttl', container).toString();
   const privateGardenUrl =
-    metaspace && new URL('private.ttl', container).toString();
-  const nurseryUrl = metaspace && new URL('nursery.ttl', container).toString();
-  const compostUrl = metaspace && new URL('compost.ttl', container).toString();
+    container && new URL('private.ttl', container).toString();
+  const nurseryUrl = container && new URL('nursery.ttl', container).toString();
+  const compostUrl = container && new URL('compost.ttl', container).toString();
   const publicGarden = useGardenWithSetup(publicGardenUrl, true);
   const privateGarden = useGardenWithSetup(privateGardenUrl);
   const nursery = useGardenWithSetup(nurseryUrl);
@@ -249,6 +251,11 @@ export function useSpaceWithSetup(
       publicGarden && (await publicGarden.setupGarden());
       spaces &&
         container &&
+        webId &&
+        compostUrl &&
+        nurseryUrl &&
+        privateGardenUrl &&
+        publicGardenUrl &&
         (await res.saveSpace(
           createSpace(webId, container, HomeSpaceSlug, {
             compost: compostUrl,
@@ -273,23 +280,23 @@ export function useSpaceWithSetup(
   return res;
 }
 
-export function useMetaSpace(webId: WebId): SpaceResult {
+export function useMetaSpace(webId: SwrlitKey): SpaceResult {
   return useSpace(webId, MetaSpaceSlug);
 }
 
-export function useMetaSpaceWithSetup(webId: WebId): SpaceWithSetupResult {
+export function useMetaSpaceWithSetup(webId: SwrlitKey): SpaceWithSetupResult {
   const { spaces, saveSpaces } = useSpaces(webId);
   const res = useMetaSpace(webId) as SpaceWithSetupResult;
   const { profile } = useProfile(webId);
   const setup = useCallback(async () => {
     if (spaces && getMetaSpace(spaces)) {
       throw new Error(
-        `MetaSpace already exists in resource with URL ${
-          spaces && getSourceUrl(spaces)
-        }`
+        `MetaSpace already exists in resource with URL ${spaces &&
+          getSourceUrl(spaces)}`
       );
     } else {
       spaces &&
+        webId &&
         (await saveSpaces(
           setMetaSpace(spaces, createMetaSpace(webId, profile))
         ));
@@ -299,7 +306,7 @@ export function useMetaSpaceWithSetup(webId: WebId): SpaceWithSetupResult {
   return res;
 }
 
-export function useSpaces(webId: WebId): SpacePreferencesResult {
+export function useSpaces(webId: SwrlitKey): SpacePreferencesResult {
   const { profile } = useProfile(webId);
   const res = useResource(
     getSpacePreferencesFile(profile)
@@ -310,7 +317,7 @@ export function useSpaces(webId: WebId): SpacePreferencesResult {
 }
 
 export function useSpacesWithSetup(
-  webId: WebId
+  webId: SwrlitKey
 ): SpacePreferencesWithSetupResult {
   const res = useSpaces(webId) as SpacePreferencesWithSetupResult;
   const meta = useMetaSpaceWithSetup(webId);
@@ -336,7 +343,7 @@ export function useSpacesWithSetup(
 }
 
 export function useAppSettings(
-  webId: WebId,
+  webId: SwrlitKey,
   appNamespace: Slug,
   appName: Slug
 ): AppSettingsResult {

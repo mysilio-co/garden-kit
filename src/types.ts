@@ -19,7 +19,7 @@ export type MaybeUUID = UUID | UUIDString;
 export type Slug = string;
 export type Base58Slug = Slug;
 
-export type Profile = Thing; // The Thing stored at a WebId
+export type Profile = Thing;
 export type AppSettings = Thing;
 
 export type Space = Thing;
