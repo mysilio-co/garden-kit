@@ -1,4 +1,4 @@
-import namespace from '@rdfjs/namespace'
+import namespace from '@rdf-esm/namespace'
 
 const g = namespace('https://vocab.mysilio.com/my/garden#');
 export const MY = {

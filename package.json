@@ -53,11 +53,11 @@
   },
   "dependencies": {
     "@inrupt/solid-client": "^1.21.0",
-    "@rdfjs/namespace": "^2.0.0",
+    "@rdf-esm/namespace": "^0.5.5",
     "@scure/base": "^1.0.0",
     "@types/react": "^18.0.5",
     "fuse.js": "^6.5.3",
     "react": "^18.0.0",
-    "swrlit": "^1.0.0-beta.6"
+    "swrlit": "^1.0.0-beta.7"
   }
 }

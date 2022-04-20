@@ -7,7 +7,9 @@ import {
   Thing,
   UrlString,
   getSourceUrl,
-  SolidDataset
+  SolidDataset,
+  isThingLocal,
+  ThingPersisted
 } from '@inrupt/solid-client';
 import { RDF, OWL } from '@inrupt/vocab-common-rdf';
 import * as uuid from 'uuid';
@@ -45,7 +47,7 @@ export function addUUID(thing: Thing): Thing {
 }
 
 export function getUUID(thing: Thing): UUIDString | null {
-  const url = asUrl(thing);
+  const url = isThingLocal(thing) ? null : asUrl(thing as ThingPersisted);
   if (url && isUUID(url)) {
     return url;
   } else {
