@@ -131,12 +131,14 @@ export function setAbout(concept: Concept, about: UrlString): Concept {
   return setUrl(concept, SIOC.about, about);
 }
 
-function createItem(webId: WebId) {
-  return buildThing(createThingWithUUID())
-    .addUrl(DCTERMS.creator, webId)
+export function createItem(webId?: WebId) {
+  const builder = buildThing(createThingWithUUID())
     .addDatetime(DCTERMS.created, new Date())
-    .addDatetime(DCTERMS.modified, new Date())
-    .build();
+    .addDatetime(DCTERMS.modified, new Date());
+  if (webId) {
+    builder.addUrl(DCTERMS.creator, webId);
+  }
+  return builder.build();
 }
 
 function setOptions(item: GardenItem, options?: Options): GardenItem {
