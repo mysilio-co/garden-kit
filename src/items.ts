@@ -138,7 +138,8 @@ export function createItem(webId?: WebId) {
   if (webId) {
     builder.addUrl(DCTERMS.creator, webId);
   }
-  return builder.build();
+  const item = addRDFType(builder.build(), MY.Garden.Item);
+  return item;
 }
 
 function setOptions(item: GardenItem, options?: Options): GardenItem {
