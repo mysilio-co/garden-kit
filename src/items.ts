@@ -144,19 +144,16 @@ export function createItem(webId?: WebId) {
 
 function setOptions(item: GardenItem, options?: Options): GardenItem {
   if (options && options.title) {
-    item = setStringNoLocale(item, DCTERMS.title, options.title);
+    item = setTitle(item, options.title);
   }
   if (options && options.format) {
     item = setStringNoLocale(item, DCTERMS.format, options.format);
   }
   if (options && options.description) {
-    item = setStringNoLocale(item, DCTERMS.description, options.description);
+    item = setDescription(item, options.description);
   }
   if (options && options.depiction) {
-    item = setStringNoLocale(item, FOAF.depiction, options.depiction);
-  }
-  if (options && options.depiction) {
-    item = setStringNoLocale(item, FOAF.depiction, options.depiction);
+    item = setDepiction(item, options.depiction);
   }
   if (options && options.nick) {
     item = setStringNoLocale(item, FOAF.nick, options.nick);
