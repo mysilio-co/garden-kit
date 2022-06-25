@@ -1,43 +1,20 @@
 import {
-  SolidDataset, ThingPersisted, Thing,
-  isThingLocal, getThing, buildThing, createThing, setThing, getThingAll,
-  getSolidDataset, createSolidDataset,
-
-  mockThingFrom, mockSolidDatasetFrom,
+  SolidDataset, Thing,
+  getThing, buildThing, createThing, setThing,
+  createSolidDataset,
+  addUrl,
   setInteger, setDecimal, setStringNoLocale, setBoolean,
-  getStringNoLocale, getInteger, getBoolean,
+  getStringNoLocale, getInteger, getBoolean, getUrl,
   saveSolidDatasetAt,
-  addUrl, toRdfJsDataset, asUrl, fromRdfJsDataset,
-  thingAsMarkdown,
-  getUrl,
 } from '@inrupt/solid-client';
-import { arrayToList } from '@rdfdev/collections'
-import rdf, { createNS } from "@ontologies/core"
+import { createNS } from "@ontologies/core"
 import { first, rest, nil } from '@ontologies/rdf'
 
-const noteDataset = mockSolidDatasetFrom("https://example.com/note")
-const remoteDatasetUrl = "https://travis.mysilio.me/public/public.ttl"
-const remoteDatasetPromise = getSolidDataset(remoteDatasetUrl)
-const note = buildThing(mockThingFrom("https://example.com/note#body"))
-  .addStringNoLocale("https://example.com/mysilio/ontology#name", "travis")
-  .build();
 const noteBody = [{ "children": [{ "text": "Hi everybody!" }], "type": "h1" }, { "type": "p", "id": 1651696062634, "children": [{ "text": "" }] }, { "children": [{ "text": "" }], "type": "h1" }, { "children": [{ "text": "thanks", "bold": true }, { "text": " for coming to the " }, { "text": "digital gardening party", "italic": true }, { "text": "." }], "type": "h2" }, { "children": [{ "text": "" }], "type": "h2" }, { "children": [{ "text": "I'm " }, { "type": "concept", "children": [{ "text": "[[Travis]]" }], "name": "Travis" }, { "text": "." }], "type": "h2" }, { "children": [{ "text": "" }], "type": "h2" }, { "children": [{ "text": "This is not a cat:" }], "type": "h2" }, { "children": [{ "text": "" }], "type": "h2" }, { "children": [{ "text": "" }], "type": "h2" }, { "type": "img", "children": [{ "text": "" }], "url": "https://travis.mysilio.me/public/itme/online/images/1cd18da0-6c9e-11eb-b09e-dd1bdda70e9f.jpg", "originalUrl": "https://travis.mysilio.me/public/itme/online/images/1cd18da0-6c9e-11eb-b09e-dd1bdda70e9f.original.jpg", "alt": "", "mime": "image/jpeg" }]
 const noteNSUrl = "https://mysilio.garden/ontologies/note#"
 const noteNS = createNS(noteNSUrl)
 
-function addSlateJSOToThingInResource(resource: SolidDataset, thing: ThingPersisted, slateJSO: object[]) {
-  const dataset = toRdfJsDataset(resource)
-  if (!isThingLocal(thing)) {
-    arrayToList([rdf.namedNode(asUrl(thing))])
-    return fromRdfJsDataset(dataset)
-  } else {
-    console.log("cannot save to ThingLocal")
-    return null
-  }
-}
-
 function addKeyValToThing(thing: Thing, key: string, value: any, path: number[]): Thing[] {
-  console.log("key", key, "val", value, "type", typeof value)
   if (Array.isArray(value)) {
     const [arrayThing, ...restOfThings] = slateArrayToThings(value, [...path, 0])
     if (arrayThing) {
@@ -94,9 +71,7 @@ function slateArrayToThings(slateArray: object[], path: number[] = [0]): Thing[]
 }
 
 function childrenArrayFromDataset(dataset: SolidDataset, childrenUrl: string) {
-  console.log("CHILD", childrenUrl)
   const thing = getThing(dataset, childrenUrl);
-  console.log("CHILD!!!", thing)
 
   if (thing) {
     return thingsToSlateArray(thing, dataset)
@@ -152,12 +127,7 @@ function thingToSlateObject(thing: Thing, dataset: SolidDataset) {
 }
 
 function thingsToSlateArray(thing: Thing, dataset: SolidDataset): object[] {
-
-  console.log("u", thing.predicates['http://www.w3.org/1999/02/22-rdf-syntax-ns#first'])
-  console.log("url", getUrl(thing, first.value))
   const restValue = getUrl(thing, rest.value)
-  console.log("rest", restValue)
-  console.log("nil", nil.value)
   const restThing = (restValue && (restValue !== nil.value)) && getThing(dataset, restValue)
   const firstThing = getThing(dataset, getUrl(thing, first.value))
   const firstElement = firstThing && thingToSlateObject(firstThing, dataset)
@@ -165,31 +135,30 @@ function thingsToSlateArray(thing: Thing, dataset: SolidDataset): object[] {
     firstElement,
     ...(restThing ? thingsToSlateArray(restThing, dataset) : [])
   ] : []
-  console.log
-
-  //console.log(getUrl(thing, rest.value))
 }
 
-describe('a note body', () => {
-  it('works', async () => {
+
+
+describe('a JSON note body', () => {
+  it('can be serialized and deserialized to and from RDF', async () => {
     const things: Thing[] = slateArrayToThings(noteBody)
     const listUrl = things[0].url
-    //console.log("things", things)
 
-    let dataset = things.filter(x => !!x).reduce(setThing, await createSolidDataset())
-    dataset = await saveSolidDatasetAt(remoteDatasetUrl, dataset)
+    let dataset = things.filter(x => !!x).reduce(setThing, createSolidDataset())
+
+    // need to save this to resolve the various local references in Thing objects
+    dataset = await saveSolidDatasetAt("https://example.com/note", dataset, {
+      fetch: jest.fn(() =>
+        Promise.resolve({
+          ok: true,
+          url: "https://example.com/note",
+          headers: new Headers(),
+        }),
+      ) as jest.Mock
+    })
 
     const listThing = getThing(dataset, listUrl)
-    /*
-    console.log("LSpred", getThingAll(dataset).map(thing =>
-      thing.predicates['http://www.w3.org/1999/02/22-rdf-syntax-ns#first']
-    ))
-*/
-
-
     const newNoteBody = listThing && thingsToSlateArray(listThing, dataset)
-
-    //console.log(things.map(thing => thingAsMarkdown(thing)))
     expect(newNoteBody).toEqual(noteBody);
   });
 });
