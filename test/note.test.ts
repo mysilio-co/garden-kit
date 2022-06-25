@@ -80,19 +80,37 @@ function childrenArrayFromDataset(dataset: SolidDataset, childrenUrl: string) {
   }
 }
 
-const typePred = noteNS('type')
 const childrenPred = noteNS('children')
-const textPred = noteNS('text')
-const idPred = noteNS('id')
-const altPred = noteNS('alt')
-const mimePred = noteNS('mime')
-const originalUrlPred = noteNS('originalUrl')
-const urlPred = noteNS('url')
-const namePred = noteNS('name')
-const boldPred = noteNS('bold')
-const italicPred = noteNS('italic')
-
 function thingToSlateObject(thing: Thing, dataset: SolidDataset) {
+  const obj: any = {}
+  for (const pred in thing.predicates) {
+    const [_, key] = pred.split(noteNSUrl)
+    if (key) {
+      if (key === 'children') {
+        const children = getUrl(thing, childrenPred.value)
+        if (children) obj.children = childrenArrayFromDataset(dataset, children)
+      } else {
+        const literals = thing.predicates[pred].literals
+        if (literals) {
+          if (literals['http://www.w3.org/2001/XMLSchema#string']) {
+            const str = getStringNoLocale(thing, pred)
+            if (str || (str === "")) obj[key] = str
+          } else if (literals['http://www.w3.org/2001/XMLSchema#boolean']){
+            const bool = getBoolean(thing, pred)
+            if (bool === true || bool === false) obj[key] = bool
+          } else if (literals['http://www.w3.org/2001/XMLSchema#integer']){
+            const n = getInteger(thing, pred)
+            if (n) obj[key] = n
+          }
+        }
+      }
+    }
+  }
+
+  return obj
+}
+/*
+function thingToSlateObject2(thing: Thing, dataset: SolidDataset) {
   const obj = {}
   const type = getStringNoLocale(thing, typePred.value)
   if (type) (obj as any).type = type
@@ -125,7 +143,7 @@ function thingToSlateObject(thing: Thing, dataset: SolidDataset) {
   if (italic) (obj as any).italic = italic
   return obj
 }
-
+*/
 function thingsToSlateArray(thing: Thing, dataset: SolidDataset): object[] {
   const restValue = getUrl(thing, rest.value)
   const restThing = (restValue && (restValue !== nil.value)) && getThing(dataset, restValue)
