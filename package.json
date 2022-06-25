@@ -44,6 +44,7 @@
     }
   ],
   "devDependencies": {
+    "@ontologies/core": "^2.0.3",
     "@size-limit/preset-small-lib": "^7.0.8",
     "husky": "^7.0.4",
     "size-limit": "^7.0.8",
@@ -53,7 +54,9 @@
   },
   "dependencies": {
     "@inrupt/solid-client": "^1.21.0",
+    "@ontologies/schema": "^2.0.0",
     "@rdf-esm/namespace": "^0.5.5",
+    "@rdfdev/collections": "^1.2.0",
     "@scure/base": "^1.0.0",
     "@types/react": "^18.0.5",
     "fuse.js": "^6.5.3",
