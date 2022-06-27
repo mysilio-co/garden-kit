@@ -109,41 +109,7 @@ function thingToSlateObject(thing: Thing, dataset: SolidDataset) {
 
   return obj
 }
-/*
-function thingToSlateObject2(thing: Thing, dataset: SolidDataset) {
-  const obj = {}
-  const type = getStringNoLocale(thing, typePred.value)
-  if (type) (obj as any).type = type
-  const text = getStringNoLocale(thing, textPred.value)
-  if (text || (text === "")) (obj as any).text = text
-  const id = getInteger(thing, idPred.value)
-  if (id) (obj as any).id = id
-  const children = getUrl(thing, childrenPred.value)
-  if (children) (obj as any).children = childrenArrayFromDataset(dataset, children)
 
-  // image
-
-  const alt = getStringNoLocale(thing, altPred.value)
-  if (alt || (alt === "")) (obj as any).alt = alt
-  const mime = getStringNoLocale(thing, mimePred.value)
-  if (mime) (obj as any).mime = mime
-  const originalUrl = getStringNoLocale(thing, originalUrlPred.value)
-  if (originalUrl) (obj as any).originalUrl = originalUrl
-  const url = getStringNoLocale(thing, urlPred.value)
-  if (url) (obj as any).url = url
-
-  // concept
-  const name = getStringNoLocale(thing, namePred.value)
-  if (name) (obj as any).name = name
-
-  // marks
-  const bold = getBoolean(thing, boldPred.value)
-  if (bold) (obj as any).bold = bold
-  const italic = getBoolean(thing, italicPred.value)
-  if (italic) (obj as any).italic = italic
-  return obj
-}
-*/
 function thingsToSlateArray(thing: Thing, dataset: SolidDataset): object[] {
   const restValue = getUrl(thing, rest.value)
   const restThing = (restValue && (restValue !== nil.value)) && getThing(dataset, restValue)
