@@ -8,16 +8,8 @@ import {
   GardenConfig,
   GardenItemType,
 } from './types';
-import {
-  createGarden,
-  getConfig,
-  getItemAll
-} from './garden';
-import {
-  access,
-  Thing,
-  getSourceUrl,
-} from '@inrupt/solid-client';
+import { createGarden, getConfig, getItemAll } from './garden';
+import { access, Thing, getSourceUrl } from '@inrupt/solid-client';
 import {
   useProfile,
   useResource,
@@ -53,7 +45,7 @@ import {
 } from './utils';
 import { useCallback, useMemo, useState } from 'react';
 import { getItemType, getTitle } from './items';
-import Fuse from "fuse.js";
+import Fuse from 'fuse.js';
 
 export type GardenResult = ResourceResult & {
   garden: Garden;
@@ -93,10 +85,10 @@ export type GardenFilter = {
   search: string;
 };
 type FuseEntry = {
-  name: string | null,
-  type: GardenItemType | null,
-  gardenItem: GardenItem
-}
+  name: string | null;
+  type: GardenItemType | null;
+  gardenItem: GardenItem;
+};
 
 export function useGardenItem(
   index: SwrlitKey,
@@ -126,7 +118,7 @@ export function useTitledGardenIten(
     },
     [res, ptr, slug, uuid]
   );
-  return res
+  return res;
 }
 
 function fuseEntryFromGardenItem(item: GardenItem): FuseEntry {
@@ -142,11 +134,11 @@ function fuseFromGarden(garden: Garden): FuseEntry[] {
 }
 
 export function useFuse(garden: Garden) {
-const options: Fuse.IFuseOptions<FuseEntry> = {
-  includeScore: true,
-  threshold: 0.3,
-  keys: ['name'],
-};
+  const options: Fuse.IFuseOptions<FuseEntry> = {
+    includeScore: true,
+    threshold: 0.3,
+    keys: ['name'],
+  };
   const [fuse] = useState(new Fuse([], options));
   return useMemo(() => {
     fuse.setCollection(fuseFromGarden(garden) || []);
@@ -165,7 +157,7 @@ export function useFilteredGarden(
       const result = fuse.search(filter.search);
       return { filtered: result.map(({ item }) => item.gardenItem) };
     } else {
-      return { filtered: getItemAll(garden)};
+      return { filtered: getItemAll(garden) };
     }
   }, [garden, filter]);
 }
@@ -224,7 +216,7 @@ export function useSpaceWithSetup(
 ): SpaceWithSetupResult {
   const { spaces } = useSpaces(webId);
   const res = useSpace(webId, slug) as SpaceWithSetupResult;
-  const metaspace = getMetaSpace(spaces)
+  const metaspace = getMetaSpace(spaces);
   const parent = metaspace && getContainer(metaspace);
   const container = parent && new URL(`${slug}/`, parent).toString();
   const publicGardenUrl =
@@ -325,9 +317,8 @@ export function useSpacesWithSetup(
   const setup = useCallback(async () => {
     if (res.spaces && hasRequiredSpaces(res.spaces)) {
       throw new Error(
-        `All required Spaces already exist in resource with URL ${
-          res.spaces && getSourceUrl(res.spaces)
-        }`
+        `All required Spaces already exist in resource with URL ${res.spaces &&
+          getSourceUrl(res.spaces)}`
       );
     } else {
       if (res.spaces && !getMetaSpace(res.spaces)) {

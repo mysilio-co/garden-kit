@@ -17,7 +17,7 @@ import {
   setUrl,
   UrlString,
   WebId,
-  Thing
+  Thing,
 } from '@inrupt/solid-client';
 import { SKOS, FOAF, DCTERMS } from '@inrupt/vocab-common-rdf';
 import { MY, SIOC } from './vocab';
@@ -108,7 +108,7 @@ export function getCreator(concept: Concept): UrlString | null {
 }
 
 export function getAbout(concept: Concept): UrlString | null {
-  return getUrl(concept, SIOC.about)
+  return getUrl(concept, SIOC.about);
 }
 
 export function setTitle(concept: Concept, title: string): Concept {
@@ -159,7 +159,7 @@ function setOptions(item: GardenItem, options?: Options): GardenItem {
     item = setStringNoLocale(item, FOAF.nick, options.nick);
   }
   return item;
-};
+}
 
 export function createConcept(
   webId: WebId,
@@ -198,7 +198,7 @@ export function createFile(
 export function createBookmark(
   webId: WebId,
   about: UrlString,
-  options?: CreateItemOptions,
+  options?: CreateItemOptions
 ): BookmarkConcept {
   let bookmark = createConcept(webId, about, options);
   bookmark = bookmark && addRDFType(bookmark, MY.Garden.Bookmark);
@@ -234,5 +234,5 @@ export function createCollection(
     collection = setOptions(collection, options);
   }
   collection = addRDFTypes(collection, [SKOS.Collection, MY.Garden.Collection]);
-  return collection
-};
+  return collection;
+}
