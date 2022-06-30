@@ -12,11 +12,11 @@ import {
   getInteger,
   getBoolean,
   getUrl,
-  Url
+  Url,
 } from '@inrupt/solid-client';
 
 import { arrayToThings, thingsToArray } from './collections';
-import { noteNS, noteNSUrl } from './vocab'
+import { noteNS, noteNSUrl } from './vocab';
 
 function addKeyValToThing(
   thing: Thing,
