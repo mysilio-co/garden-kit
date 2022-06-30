@@ -12,17 +12,15 @@ import {
   getInteger,
   getBoolean,
   getUrl,
+  Url
 } from '@inrupt/solid-client';
-import { createNS } from '@ontologies/core';
 
 import { arrayToThings, thingsToArray } from './collections';
-
-const noteNSUrl = 'https://mysilio.garden/ontologies/note#';
-const noteNS = createNS(noteNSUrl);
+import { noteNS, noteNSUrl } from './vocab'
 
 function addKeyValToThing(
   thing: Thing,
-  key: string,
+  key: string | Url,
   value: any,
   path: number[]
 ): Thing[] {
@@ -68,7 +66,7 @@ export function createThingFromSlateJSOElement(
       const [mThing, ...mRest] = m;
       const [thing, ...restOfThings] = addKeyValToThing(
         mThing,
-        noteNS(k).value,
+        noteNS(k),
         o[k],
         path
       );
@@ -96,7 +94,7 @@ export function noteThingToSlateObject(thing: Thing, dataset: SolidDataset) {
     const [, key] = pred.split(noteNSUrl);
     if (key) {
       if (key === 'children') {
-        const children = getUrl(thing, childrenPred.value);
+        const children = getUrl(thing, childrenPred);
         if (children)
           obj.children = childrenArrayFromDataset(dataset, children);
       } else {

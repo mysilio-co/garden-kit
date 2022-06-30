@@ -6,7 +6,7 @@ import {
   createThing,
   getUrl,
 } from '@inrupt/solid-client';
-import { first, rest, nil } from '@ontologies/rdf';
+import { RDF } from '@inrupt/vocab-common-rdf';
 
 type JSOToThingConverter = (obj: any, path: number[]) => Thing[];
 
@@ -26,8 +26,8 @@ export function arrayToThings(
         ])
       : [];
   const listThing = buildThing(createThing({ name: `li-${path.join('-')}` }))
-    .addUrl(first.value, listElementThing)
-    .addUrl(rest.value, nextListThing || nil.value)
+    .addUrl(RDF.first, listElementThing)
+    .addUrl(RDF.rest, nextListThing || RDF.nil)
     .build();
 
   return [
@@ -46,10 +46,10 @@ export function thingsToArray(
   dataset: SolidDataset,
   thingToSlateObject: ThingToJSOConvertor
 ): object[] {
-  const restValue = getUrl(thing, rest.value);
+  const restValue = getUrl(thing, RDF.rest);
   const restThing =
-    restValue && restValue !== nil.value && getThing(dataset, restValue);
-  const firstUrl = getUrl(thing, first.value);
+    restValue && restValue !== RDF.nil && getThing(dataset, restValue);
+  const firstUrl = getUrl(thing, RDF.first);
   const firstThing = firstUrl && getThing(dataset, firstUrl);
   const firstElement = firstThing && thingToSlateObject(firstThing, dataset);
   return firstElement
