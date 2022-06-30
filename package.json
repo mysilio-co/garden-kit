@@ -36,11 +36,11 @@
   "size-limit": [
     {
       "path": "dist/garden-kit.cjs.production.min.js",
-      "limit": "10 KB"
+      "limit": "300 KB"
     },
     {
       "path": "dist/garden-kit.esm.js",
-      "limit": "10 KB"
+      "limit": "300 KB"
     }
   ],
   "devDependencies": {
