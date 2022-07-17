@@ -9,7 +9,7 @@ import {
   GardenItemType,
 } from './types';
 import { createGarden, getConfig, getItemAll } from './garden';
-import { access, Thing, getSourceUrl } from '@inrupt/solid-client';
+import { access, Thing, getSourceUrl, createSolidDataset } from '@inrupt/solid-client';
 import {
   useProfile,
   useResource,
@@ -59,7 +59,7 @@ export type GardenWithPublicAccessResult = GardenResult & {
 export type GardenWithSetupResult = GardenWithPublicAccessResult & {
   setupGarden: any;
 };
-export type FilteredGardenResult = { filtered: GardenItem[] };
+export type FilteredGardenResult = GardenResult & { filtered: GardenItem[] };
 export type GardenItemResult = ThingResult & {
   item: GardenItem;
   saveToGarden: any;
@@ -100,7 +100,7 @@ export function useGardenItem(
   return res;
 }
 
-export function useTitledGardenIten(
+export function useTitledGardenItem(
   index: SwrlitKey,
   title: string
 ): GardenItemResult {
@@ -150,16 +150,18 @@ export function useFilteredGarden(
   index: SwrlitKey,
   filter: GardenFilter
 ): FilteredGardenResult {
-  const { garden } = useGarden(index);
+  const res = useGarden(index) as FilteredGardenResult;
+  const { garden } = res
   const { fuse } = useFuse(garden);
-  return useMemo(() => {
+  res.filtered = useMemo(() => {
     if (filter.search) {
       const result = fuse.search(filter.search);
-      return { filtered: result.map(({ item }) => item.gardenItem) };
+      return result.map(({ item }) => item.gardenItem) ;
     } else {
-      return { filtered: getItemAll(garden) };
+      return getItemAll(garden);
     }
   }, [garden, filter]);
+  return res
 }
 
 export function useGarden(index: SwrlitKey): GardenResult {
@@ -284,7 +286,7 @@ export function useMetaSpaceWithSetup(webId: SwrlitKey): SpaceWithSetupResult {
     if (spaces && getMetaSpace(spaces)) {
       throw new Error(
         `MetaSpace already exists in resource with URL ${spaces &&
-          getSourceUrl(spaces)}`
+        getSourceUrl(spaces)}`
       );
     } else {
       spaces &&
@@ -301,7 +303,7 @@ export function useMetaSpaceWithSetup(webId: SwrlitKey): SpaceWithSetupResult {
 export function useSpaces(webId: SwrlitKey): SpacePreferencesResult {
   const { profile } = useProfile(webId);
   const res = useResource(
-    getSpacePreferencesFile(profile)
+    profile && getSpacePreferencesFile(profile)
   ) as SpacePreferencesResult;
   res.spaces = res.resource;
   res.saveSpaces = res.save;
@@ -318,13 +320,24 @@ export function useSpacesWithSetup(
     if (res.spaces && hasRequiredSpaces(res.spaces)) {
       throw new Error(
         `All required Spaces already exist in resource with URL ${res.spaces &&
-          getSourceUrl(res.spaces)}`
+        getSourceUrl(res.spaces)}`
       );
     } else {
-      if (res.spaces && !getMetaSpace(res.spaces)) {
+      let spaces = res.spaces
+      if (!spaces) {
+        if (res.error && res.error.statusCode === 404){
+          // TODO also may need to save a reference in profile
+          spaces = await res.saveSpaces(createSolidDataset())
+        } else {
+          throw new Error(
+            `spaces undefined but not a 404. HTTP response is ${res.error && res.error.statusCode} with error ${res.error}`
+          );
+        }
+      }
+      if (!getMetaSpace(spaces)) {
         await meta.setupSpace();
       }
-      if (res.spaces && getSpaceAll(res.spaces).length <= 0) {
+      if (getSpaceAll(spaces).length <= 0) {
         await home.setupSpace();
       }
     }

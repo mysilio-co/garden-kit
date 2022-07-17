@@ -132,7 +132,7 @@ export function setAbout(concept: Concept, about: UrlString): Concept {
 }
 
 function createItem(webId: WebId) {
-  return buildThing(createThingWithUUID())
+  return buildThing(addRDFTypes(createThingWithUUID(), [MY.Garden.Item, SIOC.Item]))
     .addUrl(DCTERMS.creator, webId)
     .addDatetime(DCTERMS.created, new Date())
     .addDatetime(DCTERMS.modified, new Date())
@@ -167,7 +167,7 @@ export function createConcept(
   options?: Options
 ): Concept {
   let concept = createItem(webId);
-  concept = addRDFTypes(concept, [SKOS.Concept, MY.Garden.Concept, SIOC.Item]);
+  concept = addRDFTypes(concept, [SKOS.Concept, MY.Garden.Concept]);
   if (options) {
     concept = setOptions(concept, options);
   }
