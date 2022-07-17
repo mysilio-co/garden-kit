@@ -1,28 +1,13 @@
 {
-  "version": "0.1.0",
+  "version": "1.0.0-beta.1",
   "license": "MIT",
-  "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
-  "files": [
-    "dist",
-    "src"
-  ],
   "engines": {
     "node": ">=10"
   },
   "scripts": {
-    "start": "tsdx watch",
-    "build": "tsdx build",
-    "test": "tsdx test",
-    "lint": "tsdx lint",
-    "prepare": "tsdx build",
-    "size": "size-limit",
-    "analyze": "size-limit --why"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "tsdx lint"
-    }
+    "test": "jest",
+    "build": "rimraf dist && rollup -c",
+    "size": "npm run build && size-limit"
   },
   "prettier": {
     "printWidth": 80,
@@ -32,35 +17,83 @@
   },
   "name": "garden-kit",
   "author": "Ian Davis",
-  "module": "dist/garden-kit.esm.js",
+  "main": "dist/index.js",
+  "module": "dist/index.es.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./collections": {
+      "import": "./dist/collections.mjs",
+      "types": "./dist/collections.d.ts"
+    },
+    "./garden": {
+      "import": "./dist/garden.mjs",
+      "types": "./dist/garden.d.ts"
+    },
+    "./hooks": {
+      "import": "./dist/hooks.mjs",
+      "types": "./dist/hooks.d.ts"
+    },
+    "./items": {
+      "import": "./dist/items.mjs",
+      "types": "./dist/items.d.ts"
+    },
+    "./settings": {
+      "import": "./dist/settings.mjs",
+      "types": "./dist/settings.d.ts"
+    },
+    "./spaces": {
+      "import": "./dist/spaces.mjs",
+      "types": "./dist/spaces.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/utils.mjs",
+      "types": "./dist/utils.d.ts"
+    },
+    "./vocab": {
+      "import": "./dist/vocab.mjs",
+      "types": "./dist/vocab.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "size-limit": [
     {
-      "path": "dist/garden-kit.cjs.production.min.js",
-      "limit": "300 KB"
-    },
-    {
-      "path": "dist/garden-kit.esm.js",
-      "limit": "300 KB"
+      "path": "dist/index.js",
+      "limit": "200 ms",
+      "webpack": false
     }
   ],
+  "peerDependencies": {
+    "react": ">=16"
+  },
   "devDependencies": {
-    "@ontologies/core": "^2.0.3",
-    "@size-limit/preset-small-lib": "^7.0.8",
+    "@size-limit/preset-big-lib": "^7.0.8",
+    "@types/jest": "^28.1.4",
     "@types/rdfjs__namespace": "^2.0.0",
-    "husky": "^7.0.4",
+    "@types/react": "^17.0.0",
+    "esbuild": "^0.14.48",
+    "jest": "^28.1.2",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.75.7",
+    "rollup-plugin-dts": "^4.2.2",
+    "rollup-plugin-esbuild": "^4.9.1",
     "size-limit": "^7.0.8",
-    "tsdx": "^0.14.1",
-    "tslib": "^2.3.1",
-    "typescript": "^3.9.10"
+    "ts-jest": "^28.0.5",
+    "tslib": "^2.4.0",
+    "typescript": "^4.7.4"
   },
   "dependencies": {
     "@inrupt/solid-client": "^1.21.0",
     "@inrupt/vocab-common-rdf": "^1.0.5",
     "@rdfjs/namespace": "^1.1.0",
     "@scure/base": "^1.0.0",
-    "@types/react": "^18.0.5",
     "fuse.js": "^6.5.3",
-    "react": "^18.0.0",
-    "swrlit": "^1.0.0-beta.7"
+    "swrlit": "1.0.0-beta.11"
   }
 }
