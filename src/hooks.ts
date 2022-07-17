@@ -8,16 +8,8 @@ import {
   GardenConfig,
   GardenItemType,
 } from './types';
-import {
-  createGarden,
-  getConfig,
-  getItemAll
-} from './garden';
-import {
-  access,
-  Thing,
-  getSourceUrl,
-} from '@inrupt/solid-client';
+import { createGarden, getConfig, getItemAll } from './garden';
+import { access, Thing, getSourceUrl, createSolidDataset } from '@inrupt/solid-client';
 import {
   useProfile,
   useResource,
@@ -53,7 +45,7 @@ import {
 } from './utils';
 import { useCallback, useMemo, useState } from 'react';
 import { getItemType, getTitle } from './items';
-import Fuse from "fuse.js";
+import Fuse from 'fuse.js';
 
 export type GardenResult = ResourceResult & {
   garden: Garden;
@@ -67,7 +59,7 @@ export type GardenWithPublicAccessResult = GardenResult & {
 export type GardenWithSetupResult = GardenWithPublicAccessResult & {
   setupGarden: any;
 };
-export type FilteredGardenResult = { filtered: GardenItem[] };
+export type FilteredGardenResult = GardenResult & { filtered: GardenItem[] };
 export type GardenItemResult = ThingResult & {
   item: GardenItem;
   saveToGarden: any;
@@ -93,10 +85,10 @@ export type GardenFilter = {
   search: string;
 };
 type FuseEntry = {
-  name: string | null,
-  type: GardenItemType | null,
-  gardenItem: GardenItem
-}
+  name: string | null;
+  type: GardenItemType | null;
+  gardenItem: GardenItem;
+};
 
 export function useGardenItem(
   index: SwrlitKey,
@@ -108,7 +100,7 @@ export function useGardenItem(
   return res;
 }
 
-export function useTitledGardenIten(
+export function useTitledGardenItem(
   index: SwrlitKey,
   title: string
 ): GardenItemResult {
@@ -126,7 +118,7 @@ export function useTitledGardenIten(
     },
     [res, ptr, slug, uuid]
   );
-  return res
+  return res;
 }
 
 function fuseEntryFromGardenItem(item: GardenItem): FuseEntry {
@@ -142,11 +134,11 @@ function fuseFromGarden(garden: Garden): FuseEntry[] {
 }
 
 export function useFuse(garden: Garden) {
-const options: Fuse.IFuseOptions<FuseEntry> = {
-  includeScore: true,
-  threshold: 0.3,
-  keys: ['name'],
-};
+  const options: Fuse.IFuseOptions<FuseEntry> = {
+    includeScore: true,
+    threshold: 0.3,
+    keys: ['name'],
+  };
   const [fuse] = useState(new Fuse([], options));
   return useMemo(() => {
     fuse.setCollection(fuseFromGarden(garden) || []);
@@ -158,16 +150,18 @@ export function useFilteredGarden(
   index: SwrlitKey,
   filter: GardenFilter
 ): FilteredGardenResult {
-  const { garden } = useGarden(index);
+  const res = useGarden(index) as FilteredGardenResult;
+  const { garden } = res
   const { fuse } = useFuse(garden);
-  return useMemo(() => {
+  res.filtered = useMemo(() => {
     if (filter.search) {
       const result = fuse.search(filter.search);
-      return { filtered: result.map(({ item }) => item.gardenItem) };
+      return result.map(({ item }) => item.gardenItem) ;
     } else {
-      return { filtered: getItemAll(garden)};
+      return getItemAll(garden);
     }
   }, [garden, filter]);
+  return res
 }
 
 export function useGarden(index: SwrlitKey): GardenResult {
@@ -224,7 +218,7 @@ export function useSpaceWithSetup(
 ): SpaceWithSetupResult {
   const { spaces } = useSpaces(webId);
   const res = useSpace(webId, slug) as SpaceWithSetupResult;
-  const metaspace = getMetaSpace(spaces)
+  const metaspace = getMetaSpace(spaces);
   const parent = metaspace && getContainer(metaspace);
   const container = parent && new URL(`${slug}/`, parent).toString();
   const publicGardenUrl =
@@ -292,7 +286,7 @@ export function useMetaSpaceWithSetup(webId: SwrlitKey): SpaceWithSetupResult {
     if (spaces && getMetaSpace(spaces)) {
       throw new Error(
         `MetaSpace already exists in resource with URL ${spaces &&
-          getSourceUrl(spaces)}`
+        getSourceUrl(spaces)}`
       );
     } else {
       spaces &&
@@ -309,7 +303,7 @@ export function useMetaSpaceWithSetup(webId: SwrlitKey): SpaceWithSetupResult {
 export function useSpaces(webId: SwrlitKey): SpacePreferencesResult {
   const { profile } = useProfile(webId);
   const res = useResource(
-    getSpacePreferencesFile(profile)
+    profile && getSpacePreferencesFile(profile)
   ) as SpacePreferencesResult;
   res.spaces = res.resource;
   res.saveSpaces = res.save;
@@ -325,15 +319,25 @@ export function useSpacesWithSetup(
   const setup = useCallback(async () => {
     if (res.spaces && hasRequiredSpaces(res.spaces)) {
       throw new Error(
-        `All required Spaces already exist in resource with URL ${
-          res.spaces && getSourceUrl(res.spaces)
-        }`
+        `All required Spaces already exist in resource with URL ${res.spaces &&
+        getSourceUrl(res.spaces)}`
       );
     } else {
-      if (res.spaces && !getMetaSpace(res.spaces)) {
+      let spaces = res.spaces
+      if (!spaces) {
+        if (res.error && res.error.statusCode === 404){
+          // TODO also may need to save a reference in profile
+          spaces = await res.saveSpaces(createSolidDataset())
+        } else {
+          throw new Error(
+            `spaces undefined but not a 404. HTTP response is ${res.error && res.error.statusCode} with error ${res.error}`
+          );
+        }
+      }
+      if (!getMetaSpace(spaces)) {
         await meta.setupSpace();
       }
-      if (res.spaces && getSpaceAll(res.spaces).length <= 0) {
+      if (getSpaceAll(spaces).length <= 0) {
         await home.setupSpace();
       }
     }

@@ -1,10 +1,4 @@
-import {
-  Garden,
-  GardenItem,
-  GardenConfig,
-  UUIDString,
-  Slug,
-} from './types';
+import { Garden, GardenItem, GardenConfig, UUIDString, Slug } from './types';
 import {
   createSolidDataset,
   createThing,
@@ -21,7 +15,10 @@ import {
 } from './utils';
 import { isItem } from './items';
 
-export function getItemWithUUID(garden: Garden, uuid: UUIDString): GardenItem | null {
+export function getItemWithUUID(
+  garden: Garden,
+  uuid: UUIDString
+): GardenItem | null {
   return getThing(garden, uuid);
 }
 
@@ -32,7 +29,10 @@ export function getItemWithSlug(garden: Garden, slug: Slug): GardenItem | null {
   return uuid ? getItemWithUUID(garden, uuid) : null;
 }
 
-export function getItemWithTitle(garden: Garden, title: string): GardenItem | null {
+export function getItemWithTitle(
+  garden: Garden,
+  title: string
+): GardenItem | null {
   const slug = encodeBase58Slug(title);
   return getItemWithSlug(garden, slug);
 }

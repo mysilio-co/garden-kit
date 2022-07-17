@@ -117,7 +117,7 @@ export function createSpace(
 }
 
 export const MetaSpaceSlug = 'spaces';
-export const HomeSpaceSlug = 'home'
+export const HomeSpaceSlug = 'home';
 export function getMetaSpace(spaces: SpacePreferences): Space | null {
   return getSpace(spaces, MetaSpaceSlug);
 }
