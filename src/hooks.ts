@@ -32,6 +32,7 @@ import {
   hasRequiredSpaces,
   HomeSpaceSlug,
   setMetaSpace,
+  setDefaultSpacePreferencesFile,
 } from './spaces';
 import { appSettingsUrl } from './settings';
 import {
@@ -314,6 +315,7 @@ export function useSpacesWithSetup(
   webId: SwrlitKey
 ): SpacePreferencesWithSetupResult {
   const res = useSpaces(webId) as SpacePreferencesWithSetupResult;
+  const { profile, save: saveProfile } = useProfile(webId)
   const meta = useMetaSpaceWithSetup(webId);
   const home = useSpaceWithSetup(webId, HomeSpaceSlug);
   const setup = useCallback(async () => {
@@ -326,7 +328,7 @@ export function useSpacesWithSetup(
       let spaces = res.spaces
       if (!spaces) {
         if (res.error && res.error.statusCode === 404){
-          // TODO also may need to save a reference in profile
+          await saveProfile(setDefaultSpacePreferencesFile(profile))
           spaces = await res.saveSpaces(createSolidDataset())
         } else {
           throw new Error(

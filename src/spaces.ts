@@ -3,6 +3,7 @@ import {
   getThing,
   getThingAll,
   getUrl,
+  setUrl,
   WebId,
   setThing,
   Thing,
@@ -23,9 +24,14 @@ import { hasRDFType, slugToUrl } from './utils';
 import { RDF } from '@inrupt/vocab-common-rdf';
 import { MY } from './vocab';
 
-export function getRootContainer(profile: Profile): Container | null {
-  // TODO: What should we do if there is no storage set?
-  return getUrl(profile, WS.storage);
+export function getRootContainer(profile: Profile): Container {
+  const root = getUrl(profile, WS.storage);
+  if (!root) {
+    // TODO: Wha should we do if there is no storage set?
+    throw new Error('Profile has no storage predicate');
+  } else {
+    return root;
+  }
 }
 
 export function defaultSpacePreferencesFile(
@@ -34,12 +40,18 @@ export function defaultSpacePreferencesFile(
   return new URL('settings/prefs.ttl', root).toString();
 }
 
+export function setDefaultSpacePreferencesFile(profile: Profile) {
+  const root = getRootContainer(profile)
+  const defaultUrl = root && defaultSpacePreferencesFile(root);
+  return setUrl(profile, WS.preferencesFile, defaultUrl);
+}
+
 export function getSpacePreferencesFile(
   profile: Profile
 ): SpacePreferencesFile | null {
   const root = getRootContainer(profile);
-  const defaultPath = root && defaultSpacePreferencesFile(root);
-  return getUrl(profile, WS.preferencesFile) || defaultPath;
+  const defaultUrl = root && defaultSpacePreferencesFile(root);
+  return getUrl(profile, WS.preferencesFile) || defaultUrl;
 }
 
 export function getContainer(space: Space): Container | null {
