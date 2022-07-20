@@ -23,7 +23,7 @@ export type SpacePreferencesFile = UrlString;
 export type Container = UrlString;
 
 export type Garden = SolidDataset;
-export type GardenConfig = Thing;
+export type GardenSettings = Thing;
 export type GardenFile = UrlString;
 
 export type GardenItem = Thing;

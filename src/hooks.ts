@@ -5,11 +5,12 @@ import {
   SpacePreferences,
   Slug,
   AppSettings,
-  GardenConfig,
+  GardenSettings,
   GardenItemType,
+  GardenFile,
 } from './types';
-import { createGarden, getConfig, getItemAll } from './garden';
-import { access, Thing, getSourceUrl, createSolidDataset } from '@inrupt/solid-client';
+import { getItemAll } from './garden';
+import { access, Thing, getSourceUrl, createSolidDataset, getThing, createThing } from '@inrupt/solid-client';
 import {
   useProfile,
   useResource,
@@ -43,15 +44,18 @@ import {
   getUUID,
   slugToUrl,
   uuidUrn,
+  getTitle,
+  setTitle
 } from './utils';
 import { useCallback, useMemo, useState } from 'react';
-import { getItemType, getTitle } from './items';
+import { getItemType } from './items';
 import Fuse from 'fuse.js';
 
 export type GardenResult = ResourceResult & {
   garden: Garden;
   saveGarden: any;
-  config: GardenConfig | null;
+  settings: GardenSettings;
+  saveSettings: any;
 };
 export type GardenWithPublicAccessResult = GardenResult & {
   publicAccess: access.Access;
@@ -102,14 +106,14 @@ export function useGardenItem(
 }
 
 export function useTitledGardenItem(
-  index: SwrlitKey,
+  gardenItemKey: SwrlitKey,
   title: string
 ): GardenItemResult {
   const slug = encodeBase58Slug(title);
-  const ptr = useThing(index && slugToUrl(index, slug));
+  const ptr = useThing(gardenItemKey && slugToUrl(gardenItemKey, slug));
   ptr.thing = ptr.thing ? ensureUUID(ptr.thing) : createPtr(slug, uuidUrn());
   const uuid = getUUID(ptr.thing);
-  const res = useGardenItem(index, uuid);
+  const res = useGardenItem(gardenItemKey, uuid);
   res.saveToGarden = useCallback(
     async (newThing: Thing) => {
       res.mutate(newThing, false);
@@ -148,10 +152,10 @@ export function useFuse(garden: Garden) {
 }
 
 export function useFilteredGarden(
-  index: SwrlitKey,
+  gardenKey: SwrlitKey,
   filter: GardenFilter
 ): FilteredGardenResult {
-  const res = useGarden(index) as FilteredGardenResult;
+  const res = useGarden(gardenKey) as FilteredGardenResult;
   const { garden } = res
   const { fuse } = useFuse(garden);
   res.filtered = useMemo(() => {
@@ -165,42 +169,65 @@ export function useFilteredGarden(
   return res
 }
 
-export function useGarden(index: SwrlitKey): GardenResult {
-  const res = useResource(index) as GardenResult;
-  const config = res.garden && getConfig(res.garden);
+export function useGarden(
+  gardenKey: SwrlitKey,
+  webId?: SwrlitKey
+): GardenResult {
+  // Will read and set settings on a Garden
+  // Will persist settings to
+  const { profile } = useProfile(webId);
+  const res = useResource(gardenKey) as GardenResult;
+  const { thing: settings, save: saveSettings } = useThing(gardenKey);
+  const { save: saveCopy } = useThingInResource(
+    getSpacePreferencesFile(profile),
+    gardenKey
+  );
   res.garden = res.resource;
-  res.config = config;
+  res.settings = settings // merge?
+  res.saveSettings = async (newSettings: Thing) => {
+    await saveSettings(newSettings);
+    await saveCopy(newSettings);
+  };
   res.saveGarden = res.save;
   return res;
 }
 
 export function useGardenWithPublicAccess(
-  index: SwrlitKey
+  gardenKey: SwrlitKey,
+  webId?: SwrlitKey
 ): GardenWithPublicAccessResult {
-  const res = useGarden(index) as GardenWithPublicAccessResult;
-  const { access, saveAccess } = usePublicAccess(index);
+  const res = useGarden(gardenKey, webId) as GardenWithPublicAccessResult;
+  const { access, saveAccess } = usePublicAccess(gardenKey);
   res.publicAccess = access;
   res.savePublicAccess = saveAccess;
   return res;
 }
 
 export function useGardenWithSetup(
-  index: SwrlitKey,
-  publicRead?: boolean
+  gardenKey: SwrlitKey,
+  webId?: SwrlitKey
 ): GardenWithSetupResult {
-  const res = useGardenWithPublicAccess(index) as GardenWithSetupResult;
-  const setup = useCallback(async () => {
-    if (res && res.error && res.error.statusCode === 404) {
-      await res.saveGarden(createGarden());
-      publicRead && (await res.savePublicAccess({ read: publicRead }));
-    } else {
-      if (res && res.garden) {
-        throw new Error(
-          `Garden already exists in at URL ${getSourceUrl(res.garden)}`
-        );
+  const res = useGardenWithPublicAccess(gardenKey, webId) as GardenWithSetupResult;
+  const setup = useCallback(
+    async (title: string, publicRead?: boolean) => {
+      if (res && res.error && res.error.statusCode === 404) {
+        gardenKey = gardenKey as GardenFile;
+        let settings = createThing({ url: gardenKey});
+        settings = setTitle(settings, title)
+        await res.saveGarden(createSolidDataset());
+        // persists to SpacePreferences
+        await res.saveSettings(settings)
+        publicRead && (await res.savePublicAccess({ read: publicRead }));
+      } else {
+        if (res && res.garden) {
+          throw new Error(
+            `Garden already exists in at URL ${getSourceUrl(res.garden)}`
+          );
+        }
       }
-    }
-  }, [res, publicRead]);
+    },
+    [res]
+  );
   res.setupGarden = setup;
   return res;
 }
@@ -228,7 +255,7 @@ export function useSpaceWithSetup(
     container && new URL('private.ttl', container).toString();
   const nurseryUrl = container && new URL('nursery.ttl', container).toString();
   const compostUrl = container && new URL('compost.ttl', container).toString();
-  const publicGarden = useGardenWithSetup(publicGardenUrl, true);
+  const publicGarden = useGardenWithSetup(publicGardenUrl);
   const privateGarden = useGardenWithSetup(privateGardenUrl);
   const nursery = useGardenWithSetup(nurseryUrl);
   const compost = useGardenWithSetup(compostUrl);
@@ -240,10 +267,10 @@ export function useSpaceWithSetup(
         )}`
       );
     } else {
-      privateGarden && (await privateGarden.setupGarden());
-      compost && (await compost.setupGarden());
-      nursery && (await nursery.setupGarden());
-      publicGarden && (await publicGarden.setupGarden());
+      privateGarden && (await privateGarden.setupGarden('Private'));
+      compost && (await compost.setupGarden('Compost'));
+      nursery && (await nursery.setupGarden('Nursery'));
+      publicGarden && (await publicGarden.setupGarden('Public', true));
       spaces &&
         container &&
         webId &&

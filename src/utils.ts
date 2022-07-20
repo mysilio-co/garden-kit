@@ -1,6 +1,10 @@
 import {
   createThing,
   asUrl,
+  getUrl,
+  setUrl,
+  getStringNoLocale,
+  setStringNoLocale,
   getUrlAll,
   addUrl,
   buildThing,
@@ -9,11 +13,13 @@ import {
   getSourceUrl,
   SolidDataset,
   isThingLocal,
+  WebId,
 } from '@inrupt/solid-client';
 import { RDF, OWL } from '@inrupt/vocab-common-rdf';
 import * as uuid from 'uuid';
 import { base58 } from '@scure/base';
 import { UUIDString, Base58Slug, Slug, MaybeUrl } from './types';
+import { SKOS, FOAF, DCTERMS } from '@inrupt/vocab-common-rdf';
 
 export function uuidUrn(): UUIDString {
   // https://stackoverflow.com/questions/20342058/which-uuid-version-to-use
@@ -107,4 +113,36 @@ export function addRDFTypes(thing: Thing, ts: MaybeUrl[]) {
 
 export function addRDFType(thing: Thing, t: MaybeUrl) {
   return addUrl(thing, RDF.type, t);
+}
+
+export function getTitle(thing: Thing): string | null {
+  return getStringNoLocale(thing, DCTERMS.title);
+}
+
+export function getDescription(thing: Thing): string | null {
+  return getStringNoLocale(thing, DCTERMS.description);
+}
+
+export function getDepiction(thing: Thing): UrlString | null {
+  return getUrl(thing, FOAF.depiction);
+}
+
+export function getCreator(thing: Thing): UrlString | null {
+  return getUrl(thing, DCTERMS.creator);
+}
+
+export function setTitle(thing: Thing, title: string): Thing {
+  return setStringNoLocale(thing, DCTERMS.title, title);
+}
+
+export function setDescription(thing: Thing, description: string): Thing {
+  return setStringNoLocale(thing, DCTERMS.description, description);
+}
+
+export function setDepiction(thing: Thing, depiction: UrlString): Thing {
+  return setUrl(thing, FOAF.depiction, depiction);
+}
+
+export function setCreator(thing: Thing, webId: WebId): Thing {
+  return setUrl(thing, DCTERMS.creator, webId);
 }

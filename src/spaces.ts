@@ -18,6 +18,8 @@ import {
   Space,
   Slug,
   GardenFile,
+  GardenSettings,
+  Garden,
 } from './types';
 import { WS } from '@inrupt/vocab-solid-common';
 import { hasRDFType, slugToUrl } from './utils';
@@ -56,6 +58,23 @@ export function getSpacePreferencesFile(
 
 export function getContainer(space: Space): Container | null {
   return getUrl(space, WS.storage);
+}
+
+export function getGardenMap(
+  spaces: SpacePreferences,
+  space: Space
+): { [key: GardenFile]: GardenSettings } {
+  const gardenUrls = getGardenFileAll(space);
+  const nursery = getNurseryFile(space);
+  const compost = getCompostFile(space);
+  const allGardenUrls =
+    nursery && compost ? [...gardenUrls, nursery, compost] : gardenUrls;
+  const gardenMap = allGardenUrls.reduce((gardenMap, gardenKey) => {
+    const gardenSettings = getThing(spaces, gardenKey);
+    return { ...gardenMap, [gardenKey as string]: gardenSettings };
+  }, {});
+
+  return gardenMap;
 }
 
 export function getGardenFileAll(space: Space): GardenFile[] {
