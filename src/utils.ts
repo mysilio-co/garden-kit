@@ -103,8 +103,8 @@ export function addRDFTypes(thing: Thing, ts: MaybeUrl[]) {
     thing = addRDFType(thing, t);
   }
   return thing;
-};
+}
 
 export function addRDFType(thing: Thing, t: MaybeUrl) {
   return addUrl(thing, RDF.type, t);
-};
+}

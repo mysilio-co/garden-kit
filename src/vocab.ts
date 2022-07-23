@@ -1,6 +1,8 @@
-import namespace from '@rdf-esm/namespace'
+import namespace from '@rdfjs/namespace';
 
 const g = namespace('https://vocab.mysilio.com/my/garden#');
+export const noteNSUrl = 'https://vocab.mysilio.com/my/note#';
+export const noteNS = namespace(noteNSUrl);
 export const MY = {
   // The namespace library will automatically generate terms based on the property name
   // i.e. MY.scratch.fooo will be a NamedNode representing `.../scratch#fooo`

@@ -1,9 +1,4 @@
-import {
-  Thing,
-  SolidDataset,
-  Url,
-  UrlString,
-} from '@inrupt/solid-client';
+import { Thing, SolidDataset, Url, UrlString } from '@inrupt/solid-client';
 
 export type Urn = Url;
 export type UUID = Urn;
