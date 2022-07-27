@@ -11,7 +11,6 @@ import {
 } from './types';
 import {
   buildThing,
-  getStringNoLocale,
   setStringNoLocale,
   getUrl,
   setUrl,
@@ -26,6 +25,9 @@ import {
   createThingWithUUID,
   addRDFTypes,
   addRDFType,
+  setTitle,
+  setDescription,
+  setDepiction
 } from './utils';
 
 interface CreateItemOptions {
