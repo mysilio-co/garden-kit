@@ -91,40 +91,8 @@ export function isCollection(item: GardenItem): boolean {
   return hasRDFType(item, MY.Garden.Collection);
 }
 
-export function getTitle(concept: Concept): string | null {
-  return getStringNoLocale(concept, DCTERMS.title);
-}
-
-export function getDescription(concept: Concept): string | null {
-  return getStringNoLocale(concept, DCTERMS.description);
-}
-
-export function getDepiction(concept: Concept): UrlString | null {
-  return getUrl(concept, FOAF.depiction);
-}
-
-export function getCreator(concept: Concept): UrlString | null {
-  return getUrl(concept, DCTERMS.creator);
-}
-
 export function getAbout(concept: Concept): UrlString | null {
   return getUrl(concept, SIOC.about);
-}
-
-export function setTitle(concept: Concept, title: string): Concept {
-  return setStringNoLocale(concept, DCTERMS.title, title);
-}
-
-export function setDescription(concept: Concept, description: string): Concept {
-  return setStringNoLocale(concept, DCTERMS.description, description);
-}
-
-export function setDepiction(concept: Concept, depiction: UrlString): Concept {
-  return setUrl(concept, FOAF.depiction, depiction);
-}
-
-export function setCreator(concept: Concept, webId: WebId): Concept {
-  return setUrl(concept, DCTERMS.creator, webId);
 }
 
 export function setAbout(concept: Concept, about: UrlString): Concept {
