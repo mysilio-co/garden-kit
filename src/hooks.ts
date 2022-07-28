@@ -10,7 +10,11 @@ import {
   GardenFile,
 } from './types';
 import { getItemAll } from './garden';
-import { access, Thing, getSourceUrl, createSolidDataset, getThing, createThing } from '@inrupt/solid-client';
+import { access, getResourceAcl, getSolidDatasetWithAcl, setPublicResourceAccess, createAcl, Thing, UrlString, saveAclFor, WithAccessibleAcl, hasAccessibleAcl } from '@inrupt/solid-client';
+import { saveSolidDatasetAt, createSolidDataset } from '@inrupt/solid-client/resource/solidDataset'
+import { setThing, createThing } from '@inrupt/solid-client/thing/thing'
+import { getSourceUrl } from '@inrupt/solid-client/resource/resource'
+//import { setPublicAccess } from '@inrupt/solid-client/universal'
 import {
   useProfile,
   useResource,
@@ -19,8 +23,10 @@ import {
   ThingResult,
   usePublicAccess,
   useThingInResource,
+  useAuthentication,
   SwrlitKey,
 } from 'swrlit';
+
 import {
   createMetaSpace,
   createSpace,
@@ -34,6 +40,11 @@ import {
   HomeSpaceSlug,
   setMetaSpace,
   setDefaultSpacePreferencesFile,
+  setSpace,
+  getCompostFile,
+  getNurseryFile,
+  getPublicFile,
+  getPrivateFile,
 } from './spaces';
 import { appSettingsUrl } from './settings';
 import {
@@ -161,7 +172,7 @@ export function useFilteredGarden(
   res.filtered = useMemo(() => {
     if (filter.search) {
       const result = fuse.search(filter.search);
-      return result.map(({ item }) => item.gardenItem) ;
+      return result.map(({ item }) => item.gardenItem);
     } else {
       return getItemAll(garden);
     }
@@ -179,7 +190,7 @@ export function useGarden(
   const res = useResource(gardenKey) as GardenResult;
   const { thing: settings, save: saveSettings } = useThing(gardenKey);
   const { save: saveCopy } = useThingInResource(
-    getSpacePreferencesFile(profile),
+    profile && getSpacePreferencesFile(profile),
     gardenKey
   );
   res.garden = res.resource;
@@ -212,7 +223,7 @@ export function useGardenWithSetup(
     async (title: string, publicRead?: boolean) => {
       if (res && res.error && res.error.statusCode === 404) {
         gardenKey = gardenKey as GardenFile;
-        let settings = createThing({ url: gardenKey});
+        let settings = createThing({ url: gardenKey });
         settings = setTitle(settings, title)
         await res.saveGarden(createSolidDataset());
         // persists to SpacePreferences
@@ -338,13 +349,99 @@ export function useSpaces(webId: SwrlitKey): SpacePreferencesResult {
   return res;
 }
 
+function createSpaceInSpaces(spaces: SpacePreferences, slug: Slug, webId: string) {
+  const metaspace = getMetaSpace(spaces);
+  const parent = metaspace && getContainer(metaspace);
+  if (parent) {
+    const container = new URL(`${slug}/`, parent).toString();
+    const publicGardenUrl =
+      container && new URL('public.ttl', container).toString();
+    const privateGardenUrl =
+      container && new URL('private.ttl', container).toString();
+    const nurseryUrl = container && new URL('nursery.ttl', container).toString();
+    const compostUrl = container && new URL('compost.ttl', container).toString();
+    return createSpace(webId, container, slug, {
+      compost: compostUrl,
+      nursery: nurseryUrl,
+      private: privateGardenUrl,
+      public: publicGardenUrl,
+    })
+  } else {
+    throw new Error("meta space not configured or container not specified inside metaspace, cannot create home space")
+  }
+}
+
+function createGardenSettings(gardenKey: GardenFile, title: string) {
+  let settings = createThing({ url: gardenKey });
+  settings = setTitle(settings, title)
+  return settings
+}
+
+declare const fetchOptions: {
+  fetch: ((input: RequestInfo, init?: RequestInit | undefined) => Promise<Response>) & typeof globalThis.fetch;
+};
+
+declare const accessOptions: {
+  publicRead: boolean
+}
+
+async function setPublicAccess(resourceUrl: UrlString, access: any, options: any) {
+  const resource = await getSolidDatasetWithAcl(resourceUrl, options)
+  if (hasAccessibleAcl(resource)) {
+    let acl = getResourceAcl(resource) || createAcl(resource)
+    acl = setPublicResourceAccess(acl, { read: true, append: false, write: false, control: false })
+    return saveAclFor(resource, acl, options)
+  } else {
+    throw new Error("getSolidDatasetWithAcl returned resource that did not pass hasAccessibleAcl, super weird, don't know what to do, bail bail bail")
+  }
+}
+
+async function initializeGarden(gardenKey: GardenFile, title: string, options: Partial<typeof fetchOptions & typeof accessOptions> = {}) {
+  let settings = createGardenSettings(gardenKey, title);
+  let gardenDataset = createSolidDataset()
+  gardenDataset = setThing(gardenDataset, settings)
+  const gardenResource = await saveSolidDatasetAt(gardenKey, gardenDataset, options);
+  if (options.publicRead) {
+    await setPublicAccess(gardenKey, { read: true }, options)
+  }
+  return gardenResource
+}
+
+const COMPOST_DEFAULT_NAME = "Compost"
+const NURSERY_DEFAULT_NAME = "Nursery"
+const PRIVATE_DEFAULT_NAME = "Private"
+const PUBLIC_DEFAULT_NAME = "Public"
+
+async function initializeSpace(spaces: SpacePreferences, slug: Slug, options?: Partial<typeof fetchOptions>) {
+  const space = getSpace(spaces, slug)
+  if (space) {
+    const compost = getCompostFile(space)
+    const nursery = getNurseryFile(space)
+    const priv = getPrivateFile(space)
+    const pub = getPublicFile(space)
+    await Promise.all([
+      compost && initializeGarden(compost, COMPOST_DEFAULT_NAME, options),
+      nursery && initializeGarden(nursery, NURSERY_DEFAULT_NAME, options),
+      priv && initializeGarden(priv, PRIVATE_DEFAULT_NAME, options),
+      pub && initializeGarden(pub, PUBLIC_DEFAULT_NAME, { ...options, publicRead: true })
+    ])
+    // we track garden settings in the space preferences as well
+    if (compost) spaces = setThing(spaces, createGardenSettings(compost, COMPOST_DEFAULT_NAME))
+    if (nursery) spaces = setThing(spaces, createGardenSettings(nursery, NURSERY_DEFAULT_NAME))
+    if (priv) spaces = setThing(spaces, createGardenSettings(priv, PRIVATE_DEFAULT_NAME))
+    if (pub) spaces = setThing(spaces, createGardenSettings(pub, PUBLIC_DEFAULT_NAME))
+    return spaces
+  } else {
+    throw new Error(`could not find space ${slug} in spaces preference file to configure`)
+  }
+}
+
 export function useSpacesWithSetup(
   webId: SwrlitKey
 ): SpacePreferencesWithSetupResult {
   const res = useSpaces(webId) as SpacePreferencesWithSetupResult;
   const { profile, save: saveProfile } = useProfile(webId)
-  const meta = useMetaSpaceWithSetup(webId);
-  const home = useSpaceWithSetup(webId, HomeSpaceSlug);
+  const { fetch } = useAuthentication()
   const setup = useCallback(async () => {
     if (res.spaces && hasRequiredSpaces(res.spaces)) {
       throw new Error(
@@ -352,11 +449,14 @@ export function useSpacesWithSetup(
         getSourceUrl(res.spaces)}`
       );
     } else {
+      if (!webId) {
+        throw new Error("cannot set up spaces for null or undefined webId!")
+      }
       let spaces = res.spaces
       if (!spaces) {
-        if (res.error && res.error.statusCode === 404){
+        if (res.error && res.error.statusCode === 404) {
           await saveProfile(setDefaultSpacePreferencesFile(profile))
-          spaces = await res.saveSpaces(createSolidDataset())
+          spaces = createSolidDataset()
         } else {
           throw new Error(
             `spaces undefined but not a 404. HTTP response is ${res.error && res.error.statusCode} with error ${res.error}`
@@ -364,13 +464,19 @@ export function useSpacesWithSetup(
         }
       }
       if (!getMetaSpace(spaces)) {
-        await meta.setupSpace();
+        console.log("SETTING META", spaces)
+        spaces = setMetaSpace(spaces, createMetaSpace(webId, profile))
+        console.log("SET META", spaces)
+        console.log("META IS", getMetaSpace(spaces))
       }
       if (getSpaceAll(spaces).length <= 0) {
-        await home.setupSpace();
+        const homeSpace = createSpaceInSpaces(spaces, HomeSpaceSlug, webId)
+        spaces = setSpace(spaces, homeSpace)
+        spaces = await initializeSpace(spaces, HomeSpaceSlug, { fetch })
       }
+      return res.saveSpaces(spaces)
     }
-  }, [webId, res, meta, home]);
+  }, [webId, res, profile, fetch]);
   res.setupDefaultSpaces = setup;
   return res;
 }

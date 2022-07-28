@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "license": "MIT",
   "engines": {
     "node": ">=10"
@@ -89,7 +89,7 @@
     "typescript": "^4.7.4"
   },
   "dependencies": {
-    "@inrupt/solid-client": "^1.21.0",
+    "@inrupt/solid-client": "^1.23.1",
     "@inrupt/vocab-common-rdf": "^1.0.5",
     "@rdfjs/namespace": "^1.1.0",
     "@scure/base": "^1.0.0",

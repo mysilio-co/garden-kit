@@ -89,6 +89,14 @@ export function getNurseryFile(space: Space): GardenFile | null {
   return getUrl(space, MY.Garden.hasNursery);
 }
 
+export function getPublicFile(space: Space): GardenFile | null {
+  return getUrl(space, MY.Garden.hasPublic);
+}
+
+export function getPrivateFile(space: Space): GardenFile | null {
+  return getUrl(space, MY.Garden.hasPrivate);
+}
+
 export function getSpaceAll(spaces: SpacePreferences): Space[] {
   return getThingAll(spaces).filter(isSpace);
 }
@@ -103,7 +111,7 @@ export function isMetaSpace(thing: Thing): boolean {
 
 export function getSpace(spaces: SpacePreferences, slug: Slug): Space | null {
   const thingUrl = slugToUrl(spaces, slug);
-  return thingUrl ? getThing(spaces, thingUrl) : null;
+  return (spaces && thingUrl) ? getThing(spaces, thingUrl) : null;
 }
 
 export function setSpace(
@@ -132,8 +140,8 @@ export function createSpace(
     .addUrl(MY.Garden.imageStorage, new URL('images/', container).toString())
     .addUrl(MY.Garden.fileStorage, new URL('files/', container).toString())
     .addUrl(MY.Garden.noteStorage, new URL('notes/', container).toString())
-    .addUrl(MY.Garden.hasGarden, gardenUrls.private)
-    .addUrl(MY.Garden.hasGarden, gardenUrls.public)
+    .addUrl(MY.Garden.hasPrivate, gardenUrls.private)
+    .addUrl(MY.Garden.hasPublic, gardenUrls.public)
     .addUrl(MY.Garden.hasNursery, gardenUrls.nursery)
     .addUrl(MY.Garden.hasCompost, gardenUrls.compost)
     .addUrl(

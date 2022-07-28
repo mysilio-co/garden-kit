@@ -22,6 +22,8 @@ export const MY = {
     hasGarden: g`hasGarden`, // Space hasGarden Garden. A space may have many Gardens. Not all Gardens have to exist in the same pod.
     hasNursery: g`hasNursery`, // Space hasNursery Garden. A special kind of Garden, the Nursery, where new ideas go to blossom
     hasCompost: g`hasCompost`, // Space hasCompost Garden. A special kind of Garden, the Compost, where old ideas go to be composted
+    hasPublic: g`hasPublic`, // Space hasPublic Garden. The user's default public (ie, public read, owner-only write) garden.
+    hasPrivate: g`hasPrivate`, // Space hasPrivate Garden. The user's default private (ie, owner-only read/write) garden.
     hasManifest: g`hasManifest`, // Space hasManifest Manifest. A Manifest is a Resrouce that stores configuration data meant to be used by a machine.
     hasGnomesManifest: g`hasGnomesManifest`, // Space hasGnomesManifest Manifest. A machine-readable Manifest for Publications
     hasPublicationsManifest: g`hasPublicationsManifest`, // Space hasPublicationsManifest Manifest. A machine-readable Manifest for Gnomes

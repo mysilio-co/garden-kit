@@ -77,12 +77,15 @@ export function createThingWithUUID(): Thing {
 export function slugToUrl(
   resourceOrUrl: SolidDataset | UrlString,
   slug: Slug
-): UrlString | null {
+): UrlString {
   const url =
     typeof resourceOrUrl === 'string'
       ? resourceOrUrl
       : getSourceUrl(resourceOrUrl);
-  return url && new URL(`#${slug}`, url).toString();
+  return url ?
+    new URL(`#${slug}`, url).toString() :
+    // from the docs https://docs.inrupt.com/developer-tools/api/javascript/solid-client/modules/thing_thing.html#getthing
+    `https://inrupt.com/.well-known/sdk-local-node/${slug}`;
 }
 
 export function createPtr(slug: Slug, uuid: UUIDString) {
