@@ -10,7 +10,11 @@ import {
   GardenFile,
 } from './types';
 import { getItemAll } from './garden';
-import { access, getResourceAcl, getSolidDatasetWithAcl, setPublicResourceAccess, createAcl, Thing, UrlString, saveAclFor, WithAccessibleAcl, hasAccessibleAcl } from '@inrupt/solid-client';
+import {
+  access, getResourceAcl, getFallbackAcl,
+  getSolidDatasetWithAcl, setPublicResourceAccess, createAcl,
+  Thing, UrlString, saveAclFor, WithAccessibleAcl, hasAccessibleAcl, createAclFromFallbackAcl, hasFallbackAcl
+} from '@inrupt/solid-client';
 import { saveSolidDatasetAt, createSolidDataset } from '@inrupt/solid-client/resource/solidDataset'
 import { setThing, createThing } from '@inrupt/solid-client/thing/thing'
 import { getSourceUrl } from '@inrupt/solid-client/resource/resource'
@@ -38,6 +42,7 @@ import {
   getSpacePreferencesFile,
   hasRequiredSpaces,
   HomeSpaceSlug,
+  HomeSpaceDefaultName,
   setMetaSpace,
   setDefaultSpacePreferencesFile,
   setSpace,
@@ -290,7 +295,7 @@ export function useSpaceWithSetup(
         privateGardenUrl &&
         publicGardenUrl &&
         (await res.saveSpace(
-          createSpace(webId, container, HomeSpaceSlug, {
+          createSpace(webId, container, HomeSpaceSlug, HomeSpaceDefaultName, {
             compost: compostUrl,
             nursery: nurseryUrl,
             private: privateGardenUrl,
@@ -349,7 +354,7 @@ export function useSpaces(webId: SwrlitKey): SpacePreferencesResult {
   return res;
 }
 
-function createSpaceInSpaces(spaces: SpacePreferences, slug: Slug, webId: string) {
+function createSpaceInSpaces(spaces: SpacePreferences, slug: Slug, webId: string, title: string) {
   const metaspace = getMetaSpace(spaces);
   const parent = metaspace && getContainer(metaspace);
   if (parent) {
@@ -360,7 +365,7 @@ function createSpaceInSpaces(spaces: SpacePreferences, slug: Slug, webId: string
       container && new URL('private.ttl', container).toString();
     const nurseryUrl = container && new URL('nursery.ttl', container).toString();
     const compostUrl = container && new URL('compost.ttl', container).toString();
-    return createSpace(webId, container, slug, {
+    return createSpace(webId, container, slug, title, {
       compost: compostUrl,
       nursery: nurseryUrl,
       private: privateGardenUrl,
@@ -388,9 +393,16 @@ declare const accessOptions: {
 async function setPublicAccess(resourceUrl: UrlString, access: any, options: any) {
   const resource = await getSolidDatasetWithAcl(resourceUrl, options)
   if (hasAccessibleAcl(resource)) {
-    let acl = getResourceAcl(resource) || createAcl(resource)
-    acl = setPublicResourceAccess(acl, { read: true, append: false, write: false, control: false })
-    return saveAclFor(resource, acl, options)
+    let acl = getResourceAcl(resource)
+    if (!acl && hasFallbackAcl(resource)) {
+      acl = createAclFromFallbackAcl(resource)
+    }
+    if (acl) {
+      acl = setPublicResourceAccess(acl, { read: true, append: false, write: false, control: false })
+      return saveAclFor(resource, acl, options)
+    } else {
+      throw new Error(`could not find resource acl or fallback acl for resource: ${resourceUrl}`)
+    }
   } else {
     throw new Error("getSolidDatasetWithAcl returned resource that did not pass hasAccessibleAcl, super weird, don't know what to do, bail bail bail")
   }
@@ -464,13 +476,10 @@ export function useSpacesWithSetup(
         }
       }
       if (!getMetaSpace(spaces)) {
-        console.log("SETTING META", spaces)
         spaces = setMetaSpace(spaces, createMetaSpace(webId, profile))
-        console.log("SET META", spaces)
-        console.log("META IS", getMetaSpace(spaces))
       }
       if (getSpaceAll(spaces).length <= 0) {
-        const homeSpace = createSpaceInSpaces(spaces, HomeSpaceSlug, webId)
+        const homeSpace = createSpaceInSpaces(spaces, HomeSpaceSlug, webId, HomeSpaceDefaultName)
         spaces = setSpace(spaces, homeSpace)
         spaces = await initializeSpace(spaces, HomeSpaceSlug, { fetch })
       }

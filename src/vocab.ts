@@ -27,6 +27,7 @@ export const MY = {
     hasManifest: g`hasManifest`, // Space hasManifest Manifest. A Manifest is a Resrouce that stores configuration data meant to be used by a machine.
     hasGnomesManifest: g`hasGnomesManifest`, // Space hasGnomesManifest Manifest. A machine-readable Manifest for Publications
     hasPublicationsManifest: g`hasPublicationsManifest`, // Space hasPublicationsManifest Manifest. A machine-readable Manifest for Gnomes
+    spaceSlug: g`spaceSlug`, // Space has a slug, used in URLs and as the thing identifier
 
     Manifest: g`Manifest`, // A Resource for configuration data needed by services and bots, like Gnomes and Publications.
     Garden: g`Garden`, // A Resource for community content.

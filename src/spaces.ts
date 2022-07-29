@@ -9,6 +9,8 @@ import {
   Thing,
   getUrlAll,
   buildThing,
+  getStringNoLocale,
+  UrlString,
 } from '@inrupt/solid-client';
 import {
   Profile,
@@ -23,7 +25,7 @@ import {
 } from './types';
 import { WS } from '@inrupt/vocab-solid-common';
 import { hasRDFType, slugToUrl } from './utils';
-import { RDF } from '@inrupt/vocab-common-rdf';
+import { RDF, DCTERMS } from '@inrupt/vocab-common-rdf';
 import { MY } from './vocab';
 
 export function getRootContainer(profile: Profile): Container {
@@ -97,6 +99,10 @@ export function getPrivateFile(space: Space): GardenFile | null {
   return getUrl(space, MY.Garden.hasPrivate);
 }
 
+export function getSpaceSlug(space: Space): UrlString | null {
+  return getStringNoLocale(space, MY.Garden.spaceSlug)
+}
+
 export function getSpaceAll(spaces: SpacePreferences): Space[] {
   return getThingAll(spaces).filter(isSpace);
 }
@@ -125,6 +131,7 @@ export function createSpace(
   holder: WebId,
   container: Container,
   slug: Slug,
+  title: string,
   gardenUrls: {
     private: GardenFile;
     public: GardenFile;
@@ -133,6 +140,8 @@ export function createSpace(
   }
 ): Space {
   return buildThing(createThing({ name: slug }))
+    .addStringNoLocale(MY.Garden.spaceSlug, slug)
+    .addStringNoLocale(DCTERMS.title, title)
     .addUrl(MY.Garden.holder, holder)
     .addUrl(RDF.type, WS.Workspace)
     .addUrl(RDF.type, MY.Garden.Space)
@@ -157,6 +166,7 @@ export function createSpace(
 
 export const MetaSpaceSlug = 'spaces';
 export const HomeSpaceSlug = 'home';
+export const HomeSpaceDefaultName = 'Home';
 export function getMetaSpace(spaces: SpacePreferences): Space | null {
   return getSpace(spaces, MetaSpaceSlug);
 }
