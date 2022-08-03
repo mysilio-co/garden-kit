@@ -49,6 +49,10 @@
       "import": "./dist/spaces.mjs",
       "types": "./dist/spaces.d.ts"
     },
+    "./note": {
+      "import": "./dist/note.mjs",
+      "types": "./dist/note.d.ts"
+    },
     "./utils": {
       "import": "./dist/utils.mjs",
       "types": "./dist/utils.d.ts"

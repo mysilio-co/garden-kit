@@ -16,7 +16,7 @@ import {
   Thing, UrlString, saveAclFor, WithAccessibleAcl, hasAccessibleAcl, createAclFromFallbackAcl, hasFallbackAcl
 } from '@inrupt/solid-client';
 import { saveSolidDatasetAt, createSolidDataset } from '@inrupt/solid-client/resource/solidDataset'
-import { setThing, createThing } from '@inrupt/solid-client/thing/thing'
+import { setThing, createThing, getThing, asUrl } from '@inrupt/solid-client/thing/thing'
 import { getSourceUrl } from '@inrupt/solid-client/resource/resource'
 //import { setPublicAccess } from '@inrupt/solid-client/universal'
 import {
@@ -59,7 +59,7 @@ import {
   ensureUUID,
   getUUID,
   slugToUrl,
-  uuidUrn,
+  newUuidUrn,
   getTitle,
   setTitle
 } from './utils';
@@ -112,33 +112,55 @@ type FuseEntry = {
 };
 
 export function useGardenItem(
-  index: SwrlitKey,
+  gardenUrl: SwrlitKey,
   uuid: SwrlitKey
 ): GardenItemResult {
-  const res = useThingInResource(index, uuid) as GardenItemResult;
-  res.item = res.thing || createThingWithUUID();
+  const res = useThingInResource(uuid, gardenUrl) as GardenItemResult;
+  res.item = res.thing
   res.saveToGarden = res.save;
   return res;
 }
 
 export function useTitledGardenItem(
-  gardenItemKey: SwrlitKey,
+  gardenUrl: SwrlitKey,
   title: string
 ): GardenItemResult {
+  const res = useResource(gardenUrl) as GardenItemResult;
+  const gardenResource = res.resource
+
   const slug = encodeBase58Slug(title);
-  const ptr = useThing(gardenItemKey && slugToUrl(gardenItemKey, slug));
-  ptr.thing = ptr.thing ? ensureUUID(ptr.thing) : createPtr(slug, uuidUrn());
-  const uuid = getUUID(ptr.thing);
-  const res = useGardenItem(gardenItemKey, uuid);
+  const pointerUrl = gardenUrl && slugToUrl(gardenUrl, slug)
+
+  const item = useMemo(function(){
+    const pointerThing = gardenResource && pointerUrl && getThing(gardenResource, pointerUrl)
+    const uuidUrn = pointerThing && getUUID(pointerThing);
+    if (uuidUrn){
+      return getThing(gardenResource, uuidUrn)
+    } else {
+      return null
+    }
+  }, [gardenResource, pointerUrl])
+
   res.saveToGarden = useCallback(
     async (newThing: Thing) => {
-      res.mutate(newThing, false);
-      await ptr.save(ptr.thing);
-      await res.saveToGarden(newThing);
-      res.mutate(newThing);
+      const uuidUrn = getUUID(newThing)
+      if (uuidUrn){
+        let resource = gardenResource || createSolidDataset()
+        const pointerThing = gardenResource && pointerUrl && getThing(gardenResource, pointerUrl)
+        resource = setThing(resource, pointerThing || createPtr(slug, uuidUrn))
+        resource = setThing(resource, newThing)
+        return await res.save(resource)
+      } else {
+        throw new Error(`cannot save items unless they have UUID URNs, this one had ${asUrl(newThing)}`)
+      }
     },
-    [res, ptr, slug, uuid]
+    [res.save, gardenResource, pointerUrl]
   );
+
+  if (item) {
+    res.thing = item
+    res.item = item
+  }
   return res;
 }
 

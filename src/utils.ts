@@ -21,7 +21,7 @@ import { base58 } from '@scure/base';
 import { UUIDString, Base58Slug, Slug, MaybeUrl } from './types';
 import { SKOS, FOAF, DCTERMS } from '@inrupt/vocab-common-rdf';
 
-export function uuidUrn(): UUIDString {
+export function newUuidUrn(): UUIDString {
   // https://stackoverflow.com/questions/20342058/which-uuid-version-to-use
   return `urn:uuid:${uuid.v4()}`;
 }
@@ -48,7 +48,7 @@ export function isUUID(maybeUrl: MaybeUrl): boolean {
 }
 
 export function addUUID(thing: Thing): Thing {
-  return addUrl(thing, OWL.sameAs, uuidUrn());
+  return addUrl(thing, OWL.sameAs, newUuidUrn());
 }
 
 export function getUUID(thing: Thing): UUIDString | null {
@@ -71,7 +71,7 @@ export function ensureUUID(thing: Thing): Thing {
 }
 
 export function createThingWithUUID(): Thing {
-  return createThing({ url: uuidUrn() });
+  return createThing({ url: newUuidUrn() });
 }
 
 export function slugToUrl(

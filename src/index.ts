@@ -2,6 +2,7 @@ export * from './collections';
 export * from './garden';
 export * from './hooks';
 export * from './items';
+export * from './note';
 export * from './settings';
 export * from './spaces';
 export * from './types';

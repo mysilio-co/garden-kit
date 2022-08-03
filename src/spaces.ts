@@ -103,6 +103,10 @@ export function getSpaceSlug(space: Space): UrlString | null {
   return getStringNoLocale(space, MY.Garden.spaceSlug)
 }
 
+export function getNoteStorage(space: Space): UrlString | null {
+  return getUrl(space, MY.Garden.noteStorage)
+}
+
 export function getSpaceAll(spaces: SpacePreferences): Space[] {
   return getThingAll(spaces).filter(isSpace);
 }

@@ -8,6 +8,7 @@ import {
   Collection,
   GardenItem,
   GardenItemType,
+  Space
 } from './types';
 import {
   buildThing,
@@ -19,6 +20,7 @@ import {
   Thing,
 } from '@inrupt/solid-client';
 import { SKOS, FOAF, DCTERMS } from '@inrupt/vocab-common-rdf';
+import * as uuid from 'uuid';
 import { MY, SIOC } from './vocab';
 import {
   hasRDFType,
@@ -27,8 +29,10 @@ import {
   addRDFType,
   setTitle,
   setDescription,
-  setDepiction
+  setDepiction,
 } from './utils';
+import { getNoteStorage } from './spaces'
+
 
 interface CreateItemOptions {
   title?: string;
@@ -99,6 +103,18 @@ export function getAbout(concept: Concept): UrlString | null {
 
 export function setAbout(concept: Concept, about: UrlString): Concept {
   return setUrl(concept, SIOC.about, about);
+}
+
+export function getNoteBody(item: GardenItem): UrlString | null {
+  if (isNote(item)) {
+    return getAbout(item)
+  } else {
+    return null
+  }
+}
+
+export function newNoteResourceName(space: Space) {
+  return `${getNoteStorage(space)}${uuid.v4()}.ttl`
 }
 
 export function createItem(webId?: WebId) {
