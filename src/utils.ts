@@ -14,6 +14,7 @@ import {
   SolidDataset,
   isThingLocal,
   WebId,
+  Url,
 } from '@inrupt/solid-client';
 import { RDF, OWL } from '@inrupt/vocab-common-rdf';
 import * as uuid from 'uuid';
@@ -148,4 +149,13 @@ export function setDepiction(thing: Thing, depiction: UrlString): Thing {
 
 export function setCreator(thing: Thing, webId: WebId): Thing {
   return setUrl(thing, DCTERMS.creator, webId);
+}
+
+export function getUrlExpandLocalHash(thing: Thing, predicate: string | Url){
+  const urlOrHash = getUrl(thing, predicate)
+  if (urlOrHash && urlOrHash[0] && (urlOrHash[0] === "#")) {
+    return `https://inrupt.com/.well-known/sdk-local-node/${urlOrHash.substring(1)}`
+  } else {
+    return urlOrHash
+  }
 }

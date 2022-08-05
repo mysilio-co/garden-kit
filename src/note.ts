@@ -16,7 +16,12 @@ import {
 } from '@inrupt/solid-client';
 
 import { arrayToThings, thingsToArray } from './collections';
-import { noteNS, noteNSUrl } from './vocab';
+import { noteNS, noteNSUrl, MY } from './vocab';
+import { getUrlExpandLocalHash } from './utils';
+
+export function getNoteValue(note: Thing) {
+  return getUrl(note, MY.Garden.noteValue)
+}
 
 function addKeyValToThing(
   thing: Thing,
@@ -94,7 +99,7 @@ export function noteThingToSlateObject(thing: Thing, dataset: SolidDataset) {
     const [, key] = pred.split(noteNSUrl);
     if (key) {
       if (key === 'children') {
-        const children = getUrl(thing, childrenPred);
+        const children = getUrlExpandLocalHash(thing, childrenPred);
         if (children)
           obj.children = childrenArrayFromDataset(dataset, children);
       } else {

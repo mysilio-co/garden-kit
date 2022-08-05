@@ -5,8 +5,10 @@ import {
   buildThing,
   createThing,
   getUrl,
+  UrlString,
 } from '@inrupt/solid-client';
 import { RDF } from '@inrupt/vocab-common-rdf';
+import { getUrlExpandLocalHash } from './utils'
 
 type JSOToThingConverter = (obj: any, path: number[]) => Thing[];
 
@@ -21,9 +23,9 @@ export function arrayToThings(
   const [nextListThing, ...nextListSubThings] =
     restOfEls.length > 0
       ? arrayToThings(restOfEls, jsoToThing, [
-          ...path.slice(0, path.length - 1),
-          last + 1,
-        ])
+        ...path.slice(0, path.length - 1),
+        last + 1,
+      ])
       : [];
   const listThing = buildThing(createThing({ name: `li-${path.join('-')}` }))
     .addUrl(RDF.first, listElementThing)
@@ -46,18 +48,18 @@ export function thingsToArray(
   dataset: SolidDataset,
   thingToSlateObject: ThingToJSOConvertor
 ): object[] {
-  const restValue = getUrl(thing, RDF.rest);
+  const restValue = getUrlExpandLocalHash(thing, RDF.rest);
   const restThing =
     restValue && restValue !== RDF.nil && getThing(dataset, restValue);
-  const firstUrl = getUrl(thing, RDF.first);
+  const firstUrl = getUrlExpandLocalHash(thing, RDF.first);
   const firstThing = firstUrl && getThing(dataset, firstUrl);
   const firstElement = firstThing && thingToSlateObject(firstThing, dataset);
   return firstElement
     ? [
-        firstElement,
-        ...(restThing
-          ? thingsToArray(restThing, dataset, thingToSlateObject)
-          : []),
-      ]
+      firstElement,
+      ...(restThing
+        ? thingsToArray(restThing, dataset, thingToSlateObject)
+        : []),
+    ]
     : [];
 }
