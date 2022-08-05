@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-beta.3",
+  "version": "1.0.0-beta.4",
   "license": "MIT",
   "engines": {
     "node": ">=10"
@@ -98,6 +98,6 @@
     "@rdfjs/namespace": "^1.1.0",
     "@scure/base": "^1.0.0",
     "fuse.js": "^6.5.3",
-    "swrlit": "1.0.0-beta.12"
+    "swrlit": "1.0.0-beta.13"
   }
 }
