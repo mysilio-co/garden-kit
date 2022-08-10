@@ -10,15 +10,13 @@ import {
   GardenItemType,
   Space
 } from './types';
-import {
-  buildThing,
-  setStringNoLocale,
-  getUrl,
-  setUrl,
-  UrlString,
-  WebId,
-  Thing,
-} from '@inrupt/solid-client';
+import { UrlString, WebId, Thing } from '@inrupt/solid-client/interfaces';
+import { setUrl, setStringNoLocale, setDatetime } from '@inrupt/solid-client/thing/set'
+import { removeAll } from '@inrupt/solid-client/thing/remove'
+import { addStringNoLocale } from '@inrupt/solid-client/thing/add'
+import { createThing } from '@inrupt/solid-client/thing/thing'
+import { buildThing } from '@inrupt/solid-client/thing/build'
+import { getUrl } from '@inrupt/solid-client/thing/get'
 import { SKOS, FOAF, DCTERMS } from '@inrupt/vocab-common-rdf';
 import * as uuid from 'uuid';
 import { MY, SIOC } from './vocab';
@@ -103,6 +101,18 @@ export function getAbout(concept: Concept): UrlString | null {
 
 export function setAbout(concept: Concept, about: UrlString): Concept {
   return setUrl(concept, SIOC.about, about);
+}
+
+export function setTags(item: GardenItem, tagNames: string[]) {
+  item = removeAll(item, MY.Garden.tagged)
+  return tagNames.reduce(
+    (i, tagName) => addStringNoLocale(i, MY.Garden.tagged, tagName),
+    item
+  )
+}
+
+export function updateItemBeforeSave(item: GardenItem) {
+  return setDatetime(item, DCTERMS.modified, new Date());
 }
 
 export function getNoteBody(item: GardenItem): UrlString | null {
