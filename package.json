@@ -25,6 +25,10 @@
       "import": "./dist/index.mjs",
       "types": "./dist/index.d.ts"
     },
+    "./acl": {
+      "import": "./dist/acl.mjs",
+      "types": "./dist/acl.d.ts"
+    },
     "./collections": {
       "import": "./dist/collections.mjs",
       "types": "./dist/collections.d.ts"

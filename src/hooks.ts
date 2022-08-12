@@ -16,7 +16,7 @@ import {
   Thing, UrlString, saveAclFor, WithAccessibleAcl, hasAccessibleAcl, createAclFromFallbackAcl, hasFallbackAcl
 } from '@inrupt/solid-client';
 import { saveSolidDatasetAt, createSolidDataset } from '@inrupt/solid-client/resource/solidDataset'
-import { setThing, createThing, getThing, asUrl } from '@inrupt/solid-client/thing/thing'
+import { setThing, createThing, getThing, asUrl, getThingAll } from '@inrupt/solid-client/thing/thing'
 import { getSourceUrl } from '@inrupt/solid-client/resource/resource'
 //import { setPublicAccess } from '@inrupt/solid-client/universal'
 import {
@@ -65,6 +65,7 @@ import {
 } from './utils';
 import { useCallback, useMemo, useState } from 'react';
 import { getItemType } from './items';
+import {setPublicAccess} from './acl'
 import Fuse from 'fuse.js';
 
 export type GardenResult = ResourceResult & {
@@ -128,33 +129,17 @@ export function useTitledGardenItem(
   const res = useResource(gardenUrl) as GardenItemResult;
   const gardenResource = res.resource
 
-  const slug = encodeBase58Slug(title);
-  const pointerUrl = gardenUrl && slugToUrl(gardenUrl, slug)
-
   const item = useMemo(function(){
-    const pointerThing = gardenResource && pointerUrl && getThing(gardenResource, pointerUrl)
-    const uuidUrn = pointerThing && getUUID(pointerThing);
-    if (uuidUrn){
-      return getThing(gardenResource, uuidUrn)
-    } else {
-      return null
-    }
-  }, [gardenResource, pointerUrl])
+    return gardenResource && title && getThingAll(gardenResource).find(item => getTitle(item) === title)
+  }, [gardenResource, title])
 
   res.saveToGarden = useCallback(
     async (newThing: Thing) => {
-      const uuidUrn = getUUID(newThing)
-      if (uuidUrn){
         let resource = gardenResource || createSolidDataset()
-        const pointerThing = gardenResource && pointerUrl && getThing(gardenResource, pointerUrl)
-        resource = setThing(resource, pointerThing || createPtr(slug, uuidUrn))
         resource = setThing(resource, newThing)
         return await res.save(resource)
-      } else {
-        throw new Error(`cannot save items unless they have UUID URNs, this one had ${asUrl(newThing)}`)
-      }
     },
-    [res.save, gardenResource, pointerUrl]
+    [res.save, gardenResource]
   );
 
   if (item) {
@@ -412,31 +397,13 @@ declare const accessOptions: {
   publicRead: boolean
 }
 
-async function setPublicAccess(resourceUrl: UrlString, access: any, options: any) {
-  const resource = await getSolidDatasetWithAcl(resourceUrl, options)
-  if (hasAccessibleAcl(resource)) {
-    let acl = getResourceAcl(resource)
-    if (!acl && hasFallbackAcl(resource)) {
-      acl = createAclFromFallbackAcl(resource)
-    }
-    if (acl) {
-      acl = setPublicResourceAccess(acl, { read: true, append: false, write: false, control: false })
-      return saveAclFor(resource, acl, options)
-    } else {
-      throw new Error(`could not find resource acl or fallback acl for resource: ${resourceUrl}`)
-    }
-  } else {
-    throw new Error("getSolidDatasetWithAcl returned resource that did not pass hasAccessibleAcl, super weird, don't know what to do, bail bail bail")
-  }
-}
-
 async function initializeGarden(gardenKey: GardenFile, title: string, options: Partial<typeof fetchOptions & typeof accessOptions> = {}) {
   let settings = createGardenSettings(gardenKey, title);
   let gardenDataset = createSolidDataset()
   gardenDataset = setThing(gardenDataset, settings)
   const gardenResource = await saveSolidDatasetAt(gardenKey, gardenDataset, options);
   if (options.publicRead) {
-    await setPublicAccess(gardenKey, { read: true }, options)
+    await setPublicAccess(gardenKey, { read: true, append: false, write: false, control: false }, options)
   }
   return gardenResource
 }
