@@ -118,7 +118,6 @@ export function useGardenItem(
 ): GardenItemResult {
   const res = useThingInResource(uuid, gardenUrl) as GardenItemResult;
   res.item = res.thing
-  res.saveToGarden = res.save;
   return res;
 }
 
@@ -127,19 +126,20 @@ export function useTitledGardenItem(
   title: string
 ): GardenItemResult {
   const res = useResource(gardenUrl) as GardenItemResult;
+  res.saveResource = res.save
   const gardenResource = res.resource
 
   const item = useMemo(function(){
     return gardenResource && title && getThingAll(gardenResource).find(item => getTitle(item) === title)
   }, [gardenResource, title])
 
-  res.saveToGarden = useCallback(
+  res.save = useCallback(
     async (newThing: Thing) => {
         let resource = gardenResource || createSolidDataset()
         resource = setThing(resource, newThing)
-        return await res.save(resource)
+        return await res.saveResource(resource)
     },
-    [res.save, gardenResource]
+    [res.saveResource, gardenResource]
   );
 
   if (item) {
