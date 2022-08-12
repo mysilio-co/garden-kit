@@ -80,7 +80,11 @@ export function getGardenMap(
 }
 
 export function getGardenFileAll(space: Space): GardenFile[] {
-  return getUrlAll(space, MY.Garden.hasGarden);
+  const files = [
+    getNurseryFile(space), getPublicFile(space), getPrivateFile(space), getCompostFile(space),
+    ...getUrlAll(space, MY.Garden.hasGarden)
+  ];
+  return files.filter(x => !!x) as GardenFile[]
 }
 
 export function getCompostFile(space: Space): GardenFile | null {
@@ -166,6 +170,13 @@ export function createSpace(
       new URL('gnomes.ttl', container).toString()
     )
     .build();
+}
+
+export function gardenMetadataInSpacePrefs(space: Space, spacePrefs: SpacePreferences): GardenSettings[] | null {
+  const gardenUrls = getGardenFileAll(space)
+  return gardenUrls && gardenUrls.map(gardenUrl => {
+    return getThing(spacePrefs, gardenUrl) as GardenSettings
+  })
 }
 
 export const MetaSpaceSlug = 'spaces';
