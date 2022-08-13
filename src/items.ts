@@ -16,7 +16,7 @@ import { removeAll } from '@inrupt/solid-client/thing/remove'
 import { addStringNoLocale } from '@inrupt/solid-client/thing/add'
 import { createThing } from '@inrupt/solid-client/thing/thing'
 import { buildThing } from '@inrupt/solid-client/thing/build'
-import { getUrl } from '@inrupt/solid-client/thing/get'
+import { getUrl, getStringNoLocaleAll } from '@inrupt/solid-client/thing/get'
 import { SKOS, FOAF, DCTERMS } from '@inrupt/vocab-common-rdf';
 import * as uuid from 'uuid';
 import { MY, SIOC } from './vocab';
@@ -109,6 +109,10 @@ export function setTags(item: GardenItem, tagNames: string[]) {
     (i, tagName) => addStringNoLocale(i, MY.Garden.tagged, tagName),
     item
   )
+}
+
+export function getTags(item: GardenItem){
+  return getStringNoLocaleAll(item, MY.Garden.tagged)
 }
 
 export function updateItemBeforeSave(item: GardenItem) {
