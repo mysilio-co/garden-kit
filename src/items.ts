@@ -115,6 +115,18 @@ export function getTags(item: GardenItem){
   return getStringNoLocaleAll(item, MY.Garden.tagged)
 }
 
+export function setReferences(item: GardenItem, referenceNames: string[]) {
+  item = removeAll(item, MY.Garden.references)
+  return referenceNames.reduce(
+    (i, referenceName) => addStringNoLocale(i, MY.Garden.references, referenceName),
+    item
+  )
+}
+
+export function getReferences(item: GardenItem){
+  return getStringNoLocaleAll(item, MY.Garden.references)
+}
+
 export function updateItemBeforeSave(item: GardenItem) {
   return setDatetime(item, DCTERMS.modified, new Date());
 }
