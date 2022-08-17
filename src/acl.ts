@@ -1,13 +1,18 @@
 
 import {
-  access, getResourceAcl, getFallbackAcl,
-  getSolidDatasetWithAcl, setPublicResourceAccess, createAcl,
-  Thing, UrlString, saveAclFor, WithAccessibleAcl, hasAccessibleAcl, createAclFromFallbackAcl, hasFallbackAcl
+  getResourceAcl,
+  setPublicResourceAccess,
+  UrlString,
+  saveAclFor,
+  hasAccessibleAcl,
+  createAclFromFallbackAcl,
+  hasFallbackAcl,
+  getFileWithAcl
 } from '@inrupt/solid-client';
 
 
 export async function setPublicAccess(resourceUrl: UrlString, access: any, options: any) {
-  const resource = await getSolidDatasetWithAcl(resourceUrl, options)
+  const resource = await getFileWithAcl(resourceUrl, options)
   if (hasAccessibleAcl(resource)) {
     let acl = getResourceAcl(resource)
     if (!acl && hasFallbackAcl(resource)) {

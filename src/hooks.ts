@@ -14,8 +14,9 @@ import {
   access, getResourceAcl, getFallbackAcl,
   getSolidDatasetWithAcl, setPublicResourceAccess, createAcl,
   Thing, UrlString, saveAclFor, WithAccessibleAcl, hasAccessibleAcl, createAclFromFallbackAcl, hasFallbackAcl
+
 } from '@inrupt/solid-client';
-import { saveSolidDatasetAt, createSolidDataset } from '@inrupt/solid-client/resource/solidDataset'
+import { saveSolidDatasetAt, createSolidDataset, createContainerAt } from '@inrupt/solid-client/resource/solidDataset'
 import { setThing, createThing, getThing, asUrl, getThingAll } from '@inrupt/solid-client/thing/thing'
 import { getSourceUrl } from '@inrupt/solid-client/resource/resource'
 //import { setPublicAccess } from '@inrupt/solid-client/universal'
@@ -50,6 +51,9 @@ import {
   getNurseryFile,
   getPublicFile,
   getPrivateFile,
+  getImageStorage,
+  getFileStorage,
+  getNoteStorage
 } from './spaces';
 import { appSettingsUrl } from './settings';
 import {
@@ -65,7 +69,7 @@ import {
 } from './utils';
 import { useCallback, useMemo, useState } from 'react';
 import { getItemType } from './items';
-import {setPublicAccess} from './acl'
+import { setPublicAccess } from './acl'
 import Fuse from 'fuse.js';
 
 export type GardenResult = ResourceResult & {
@@ -129,15 +133,15 @@ export function useTitledGardenItem(
   res.saveResource = res.save
   const gardenResource = res.resource
 
-  const item = useMemo(function(){
+  const item = useMemo(function () {
     return gardenResource && title && getThingAll(gardenResource).find(item => getTitle(item) === title)
   }, [gardenResource, title])
 
   res.save = useCallback(
     async (newThing: Thing) => {
-        let resource = gardenResource || createSolidDataset()
-        resource = setThing(resource, newThing)
-        return await res.saveResource(resource)
+      let resource = gardenResource || createSolidDataset()
+      resource = setThing(resource, newThing)
+      return await res.saveResource(resource)
     },
     [res.saveResource, gardenResource]
   );
@@ -401,10 +405,22 @@ async function initializeGarden(gardenKey: GardenFile, title: string, options: P
   let settings = createGardenSettings(gardenKey, title);
   let gardenDataset = createSolidDataset()
   gardenDataset = setThing(gardenDataset, settings)
-  const gardenResource = await saveSolidDatasetAt(gardenKey, gardenDataset, options);
+  let gardenResource;
+  try {
+    gardenResource = await saveSolidDatasetAt(gardenKey, gardenDataset, options);
+  } catch (e: any) {
+    // don't throw an error on 412, this just means the resource is already there
+    if (e.statusCode === 412) {
+      return null
+    } else {
+      throw e
+    }
+  }
+
   if (options.publicRead) {
     await setPublicAccess(gardenKey, { read: true, append: false, write: false, control: false }, options)
   }
+
   return gardenResource
 }
 
@@ -413,6 +429,20 @@ const NURSERY_DEFAULT_NAME = "Nursery"
 const PRIVATE_DEFAULT_NAME = "Private"
 const PUBLIC_DEFAULT_NAME = "Public"
 
+async function maybeCreateContainerAt(file: string, options: any) {
+  console.log("trying to create container", file)
+  try {
+    return await createContainerAt(file, options)
+  } catch (e: any) {
+    // don't throw an error on 412, this just means the resource is already there
+    if (e.statusCode === 412) {
+      return null
+    } else {
+      throw e
+    }
+  }
+}
+
 async function initializeSpace(spaces: SpacePreferences, slug: Slug, options?: Partial<typeof fetchOptions>) {
   const space = getSpace(spaces, slug)
   if (space) {
@@ -420,11 +450,17 @@ async function initializeSpace(spaces: SpacePreferences, slug: Slug, options?: P
     const nursery = getNurseryFile(space)
     const priv = getPrivateFile(space)
     const pub = getPublicFile(space)
+    const images = getImageStorage(space)
+    const files = getFileStorage(space)
+    const notes = getNoteStorage(space)
     await Promise.all([
       compost && initializeGarden(compost, COMPOST_DEFAULT_NAME, options),
       nursery && initializeGarden(nursery, NURSERY_DEFAULT_NAME, options),
       priv && initializeGarden(priv, PRIVATE_DEFAULT_NAME, options),
-      pub && initializeGarden(pub, PUBLIC_DEFAULT_NAME, { ...options, publicRead: true })
+      pub && initializeGarden(pub, PUBLIC_DEFAULT_NAME, { ...options, publicRead: true }),
+      images && maybeCreateContainerAt(images, options),
+      files && maybeCreateContainerAt(files, options),
+      notes && maybeCreateContainerAt(notes, options)
     ])
     // we track garden settings in the space preferences as well
     if (compost) spaces = setThing(spaces, createGardenSettings(compost, COMPOST_DEFAULT_NAME))

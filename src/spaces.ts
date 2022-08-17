@@ -111,6 +111,14 @@ export function getNoteStorage(space: Space): UrlString | null {
   return getUrl(space, MY.Garden.noteStorage)
 }
 
+export function getImageStorage(space: Space): UrlString | null {
+  return getUrl(space, MY.Garden.imageStorage)
+}
+
+export function getFileStorage(space: Space): UrlString | null {
+  return getUrl(space, MY.Garden.fileStorage)
+}
+
 export function getSpaceAll(spaces: SpacePreferences): Space[] {
   return getThingAll(spaces).filter(isSpace);
 }
