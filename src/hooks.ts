@@ -134,7 +134,10 @@ export function useTitledGardenItem(
   const gardenResource = res.resource
 
   const item = useMemo(function () {
-    return gardenResource && title && getThingAll(gardenResource).find(item => getTitle(item) === title)
+    return gardenResource && title && getThingAll(gardenResource).find(item => {
+      const itemTitle = getTitle(item)
+      return itemTitle && (itemTitle.toLowerCase() === title.toLowerCase())
+    })
   }, [gardenResource, title])
 
   res.save = useCallback(
