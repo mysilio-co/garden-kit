@@ -8,25 +8,29 @@ import {
   Collection,
   GardenItem,
   GardenItemType,
+  Space
 } from './types';
-import {
-  buildThing,
-  getStringNoLocale,
-  setStringNoLocale,
-  getUrl,
-  setUrl,
-  UrlString,
-  WebId,
-  Thing
-} from '@inrupt/solid-client';
+import { UrlString, WebId, Thing } from '@inrupt/solid-client/interfaces';
+import { setUrl, setStringNoLocale, setDatetime } from '@inrupt/solid-client/thing/set'
+import { removeAll } from '@inrupt/solid-client/thing/remove'
+import { addStringNoLocale } from '@inrupt/solid-client/thing/add'
+import { createThing } from '@inrupt/solid-client/thing/thing'
+import { buildThing } from '@inrupt/solid-client/thing/build'
+import { getUrl, getStringNoLocaleAll } from '@inrupt/solid-client/thing/get'
 import { SKOS, FOAF, DCTERMS } from '@inrupt/vocab-common-rdf';
+import * as uuid from 'uuid';
 import { MY, SIOC } from './vocab';
 import {
   hasRDFType,
   createThingWithUUID,
   addRDFTypes,
   addRDFType,
+  setTitle,
+  setDescription,
+  setDepiction,
 } from './utils';
+import { getNoteStorage } from './spaces'
+
 
 interface CreateItemOptions {
   title?: string;
@@ -91,75 +95,83 @@ export function isCollection(item: GardenItem): boolean {
   return hasRDFType(item, MY.Garden.Collection);
 }
 
-export function getTitle(concept: Concept): string | null {
-  return getStringNoLocale(concept, DCTERMS.title);
-}
-
-export function getDescription(concept: Concept): string | null {
-  return getStringNoLocale(concept, DCTERMS.description);
-}
-
-export function getDepiction(concept: Concept): UrlString | null {
-  return getUrl(concept, FOAF.depiction);
-}
-
-export function getCreator(concept: Concept): UrlString | null {
-  return getUrl(concept, DCTERMS.creator);
-}
-
 export function getAbout(concept: Concept): UrlString | null {
-  return getUrl(concept, SIOC.about)
-}
-
-export function setTitle(concept: Concept, title: string): Concept {
-  return setStringNoLocale(concept, DCTERMS.title, title);
-}
-
-export function setDescription(concept: Concept, description: string): Concept {
-  return setStringNoLocale(concept, DCTERMS.description, description);
-}
-
-export function setDepiction(concept: Concept, depiction: UrlString): Concept {
-  return setUrl(concept, FOAF.depiction, depiction);
-}
-
-export function setCreator(concept: Concept, webId: WebId): Concept {
-  return setUrl(concept, DCTERMS.creator, webId);
+  return getUrl(concept, SIOC.about);
 }
 
 export function setAbout(concept: Concept, about: UrlString): Concept {
   return setUrl(concept, SIOC.about, about);
 }
 
-function createItem(webId: WebId) {
-  return buildThing(createThingWithUUID())
-    .addUrl(DCTERMS.creator, webId)
+export function setTags(item: GardenItem, tagNames: string[]) {
+  item = removeAll(item, MY.Garden.tagged)
+  return tagNames.reduce(
+    (i, tagName) => addStringNoLocale(i, MY.Garden.tagged, tagName),
+    item
+  )
+}
+
+export function getTags(item: GardenItem){
+  return getStringNoLocaleAll(item, MY.Garden.tagged)
+}
+
+export function setReferences(item: GardenItem, referenceNames: string[]) {
+  item = removeAll(item, MY.Garden.references)
+  return referenceNames.reduce(
+    (i, referenceName) => addStringNoLocale(i, MY.Garden.references, referenceName),
+    item
+  )
+}
+
+export function getReferences(item: GardenItem){
+  return getStringNoLocaleAll(item, MY.Garden.references)
+}
+
+export function updateItemBeforeSave(item: GardenItem) {
+  return setDatetime(item, DCTERMS.modified, new Date());
+}
+
+export function getNoteBody(item: GardenItem): UrlString | null {
+  if (isNote(item)) {
+    return getAbout(item)
+  } else {
+    return null
+  }
+}
+
+export function newNoteResourceName(space: Space) {
+  return `${getNoteStorage(space)}${uuid.v4()}.ttl`
+}
+
+export function createItem(webId?: WebId) {
+  const builder = buildThing(createThingWithUUID())
     .addDatetime(DCTERMS.created, new Date())
-    .addDatetime(DCTERMS.modified, new Date())
-    .build();
+    .addDatetime(DCTERMS.modified, new Date());
+  if (webId) {
+    builder.addUrl(DCTERMS.creator, webId);
+  }
+  const item = addRDFType(builder.build(), MY.Garden.Item);
+  return item;
 }
 
 function setOptions(item: GardenItem, options?: Options): GardenItem {
   if (options && options.title) {
-    item = setStringNoLocale(item, DCTERMS.title, options.title);
+    item = setTitle(item, options.title);
   }
   if (options && options.format) {
     item = setStringNoLocale(item, DCTERMS.format, options.format);
   }
   if (options && options.description) {
-    item = setStringNoLocale(item, DCTERMS.description, options.description);
+    item = setDescription(item, options.description);
   }
   if (options && options.depiction) {
-    item = setStringNoLocale(item, FOAF.depiction, options.depiction);
-  }
-  if (options && options.depiction) {
-    item = setStringNoLocale(item, FOAF.depiction, options.depiction);
+    item = setDepiction(item, options.depiction);
   }
   if (options && options.nick) {
     item = setStringNoLocale(item, FOAF.nick, options.nick);
   }
   return item;
-};
+}
 
 export function createConcept(
   webId: WebId,
@@ -167,7 +179,7 @@ export function createConcept(
   options?: Options
 ): Concept {
   let concept = createItem(webId);
-  concept = addRDFTypes(concept, [SKOS.Concept, MY.Garden.Concept, SIOC.Item]);
+  concept = addRDFTypes(concept, [SKOS.Concept, MY.Garden.Concept]);
   if (options) {
     concept = setOptions(concept, options);
   }
@@ -198,7 +210,7 @@ export function createFile(
 export function createBookmark(
   webId: WebId,
   about: UrlString,
-  options?: CreateItemOptions,
+  options?: CreateItemOptions
 ): BookmarkConcept {
   let bookmark = createConcept(webId, about, options);
   bookmark = bookmark && addRDFType(bookmark, MY.Garden.Bookmark);
@@ -234,5 +246,5 @@ export function createCollection(
     collection = setOptions(collection, options);
   }
   collection = addRDFTypes(collection, [SKOS.Collection, MY.Garden.Collection]);
-  return collection
-};
+  return collection;
+}

@@ -1,13 +1,11 @@
 import {
   Garden,
   GardenItem,
-  GardenConfig,
+  GardenFile,
   UUIDString,
   Slug,
 } from './types';
 import {
-  createSolidDataset,
-  createThing,
   getThing,
   getThingAll,
   setThing,
@@ -17,11 +15,14 @@ import {
   encodeBase58Slug,
   createPtr,
   slugToUrl,
-  addUUID,
+  addUUID
 } from './utils';
 import { isItem } from './items';
 
-export function getItemWithUUID(garden: Garden, uuid: UUIDString): GardenItem | null {
+export function getItemWithUUID(
+  garden: Garden,
+  uuid: UUIDString
+): GardenItem | null {
   return getThing(garden, uuid);
 }
 
@@ -32,7 +33,10 @@ export function getItemWithSlug(garden: Garden, slug: Slug): GardenItem | null {
   return uuid ? getItemWithUUID(garden, uuid) : null;
 }
 
-export function getItemWithTitle(garden: Garden, title: string): GardenItem | null {
+export function getItemWithTitle(
+  garden: Garden,
+  title: string
+): GardenItem | null {
   const slug = encodeBase58Slug(title);
   return getItemWithSlug(garden, slug);
 }
@@ -67,14 +71,4 @@ export function setItemWithTitle(
 ): Garden {
   const slug = encodeBase58Slug(title);
   return setItemWithSlug(garden, slug, item);
-}
-
-const ConfigSlug = 'garden';
-export function getConfig(garden: Garden): GardenConfig | null {
-  return getItemWithSlug(garden, ConfigSlug);
-}
-
-export function createGarden(): Garden {
-  const config = createThing({ name: ConfigSlug });
-  return setThing(createSolidDataset(), config);
 }

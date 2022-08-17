@@ -1,6 +1,8 @@
-import namespace from '@rdf-esm/namespace'
+import namespace from '@rdfjs/namespace';
 
 const g = namespace('https://vocab.mysilio.com/my/garden#');
+export const noteNSUrl = 'https://vocab.mysilio.com/my/note#';
+export const noteNS = namespace(noteNSUrl);
 export const MY = {
   // The namespace library will automatically generate terms based on the property name
   // i.e. MY.scratch.fooo will be a NamedNode representing `.../scratch#fooo`
@@ -20,9 +22,12 @@ export const MY = {
     hasGarden: g`hasGarden`, // Space hasGarden Garden. A space may have many Gardens. Not all Gardens have to exist in the same pod.
     hasNursery: g`hasNursery`, // Space hasNursery Garden. A special kind of Garden, the Nursery, where new ideas go to blossom
     hasCompost: g`hasCompost`, // Space hasCompost Garden. A special kind of Garden, the Compost, where old ideas go to be composted
+    hasPublic: g`hasPublic`, // Space hasPublic Garden. The user's default public (ie, public read, owner-only write) garden.
+    hasPrivate: g`hasPrivate`, // Space hasPrivate Garden. The user's default private (ie, owner-only read/write) garden.
     hasManifest: g`hasManifest`, // Space hasManifest Manifest. A Manifest is a Resrouce that stores configuration data meant to be used by a machine.
     hasGnomesManifest: g`hasGnomesManifest`, // Space hasGnomesManifest Manifest. A machine-readable Manifest for Publications
     hasPublicationsManifest: g`hasPublicationsManifest`, // Space hasPublicationsManifest Manifest. A machine-readable Manifest for Gnomes
+    spaceSlug: g`spaceSlug`, // Space has a slug, used in URLs and as the thing identifier
 
     Manifest: g`Manifest`, // A Resource for configuration data needed by services and bots, like Gnomes and Publications.
     Garden: g`Garden`, // A Resource for community content.
@@ -37,6 +42,7 @@ export const MY = {
     tagged: g`tagged`,
     emojis: g`emojis`,
     references: g`references`,
+    noteValue: g`noteValue`, // Note noteValue. The value of the note's body - should be deserializable to a Slate.js value
 
     Image: g`Image`,
     File: g`File`,
