@@ -8,3 +8,4 @@ export * from './spaces';
 export * from './types';
 export * from './utils';
 export * from './vocab';
+export * from './acl';
