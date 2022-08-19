@@ -18,7 +18,6 @@ import { createThing } from '@inrupt/solid-client/thing/thing'
 import { buildThing } from '@inrupt/solid-client/thing/build'
 import { getUrl, getStringNoLocaleAll } from '@inrupt/solid-client/thing/get'
 import { SKOS, FOAF, DCTERMS } from '@inrupt/vocab-common-rdf';
-import * as uuid from 'uuid';
 import { MY, SIOC } from './vocab';
 import {
   hasRDFType,
@@ -29,9 +28,6 @@ import {
   setDescription,
   setDepiction,
 } from './utils';
-import { getNoteStorage } from './spaces'
-
-
 interface CreateItemOptions {
   title?: string;
   description?: string;
@@ -111,7 +107,7 @@ export function setTags(item: GardenItem, tagNames: string[]) {
   )
 }
 
-export function getTags(item: GardenItem){
+export function getTags(item: GardenItem) {
   return getStringNoLocaleAll(item, MY.Garden.tagged)
 }
 
@@ -123,8 +119,44 @@ export function setReferences(item: GardenItem, referenceNames: string[]) {
   )
 }
 
-export function getReferences(item: GardenItem){
+export function getReferences(item: GardenItem) {
   return getStringNoLocaleAll(item, MY.Garden.references)
+}
+
+export function getImage(item: GardenItem) {
+  return getUrl(item, MY.Garden.image)
+}
+
+export function setImage(item: GardenItem, imageUrl: UrlString) {
+  item = addRDFType(item, MY.Garden.Image);
+  return setUrl(item, MY.Garden.image, imageUrl)
+}
+
+export function getFile(item: GardenItem) {
+  return getUrl(item, MY.Garden.file)
+}
+
+export function setFile(item: GardenItem, fileUrl: UrlString) {
+  item = addRDFType(item, MY.Garden.File);
+  return setUrl(item, MY.Garden.file, fileUrl)
+}
+
+export function getBookmark(item: GardenItem) {
+  return getUrl(item, MY.Garden.bookmark)
+}
+
+export function setBookmark(item: GardenItem, bookmarkUrl: UrlString) {
+  item = addRDFType(item, MY.Garden.Bookmark);
+  return setUrl(item, MY.Garden.bookmark, bookmarkUrl)
+}
+
+export function getNote(item: GardenItem) {
+  return getUrl(item, MY.Garden.note)
+}
+
+export function setNote(item: GardenItem, noteUrl: UrlString) {
+  item = addRDFType(item, MY.Garden.Note);
+  return setUrl(item, MY.Garden.note, noteUrl)
 }
 
 export function updateItemBeforeSave(item: GardenItem) {
@@ -139,18 +171,17 @@ export function getNoteBody(item: GardenItem): UrlString | null {
   }
 }
 
-export function newNoteResourceName(space: Space) {
-  return `${getNoteStorage(space)}${uuid.v4()}.ttl`
-}
-
-export function createItem(webId?: WebId) {
+export function createItem(webId?: WebId, options?: Options) {
   const builder = buildThing(createThingWithUUID())
     .addDatetime(DCTERMS.created, new Date())
     .addDatetime(DCTERMS.modified, new Date());
   if (webId) {
     builder.addUrl(DCTERMS.creator, webId);
   }
-  const item = addRDFType(builder.build(), MY.Garden.Item);
+  let item = addRDFType(builder.build(), MY.Garden.Item);
+  if (options) {
+    item = setOptions(item, options);
+  }
   return item;
 }
 

@@ -42,12 +42,15 @@ export const MY = {
     tagged: g`tagged`,
     emojis: g`emojis`,
     references: g`references`,
-    noteValue: g`noteValue`, // Note noteValue. The value of the note's body - should be deserializable to a Slate.js value
+    image: g`image`,
+    file: g`file`,
+    bookmark: g`bookmark`,
+    note: g`note`,
 
     Image: g`Image`,
     File: g`File`,
     Note: g`Note`,
-    storedAt: g`storedAt`,
+    noteValue: g`noteValue`, // Note noteValue. The value of the note's body - should be deserializable to a Slate.js value
     Bookmark: g`Bookmark`,
     Person: g`Person`,
 

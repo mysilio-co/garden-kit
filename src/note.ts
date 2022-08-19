@@ -1,23 +1,62 @@
 import {
   SolidDataset,
   Thing,
+  Url,
+} from '@inrupt/solid-client/interfaces';
+import {
+  saveSolidDatasetAt,
+  createSolidDataset
+} from '@inrupt/solid-client/resource/solidDataset'
+import {
   getThing,
   createThing,
-  addUrl,
+  setThing
+} from '@inrupt/solid-client/thing/thing'
+import {
   setInteger,
+  setUrl,
   setDecimal,
   setStringNoLocale,
   setBoolean,
+} from '@inrupt/solid-client/thing/set'
+import {
   getStringNoLocale,
   getInteger,
   getBoolean,
   getUrl,
-  Url,
-} from '@inrupt/solid-client';
+} from '@inrupt/solid-client/thing/get'
+import {
+  addUrl
+} from '@inrupt/solid-client/thing/add'
+import * as uuid from 'uuid';
 
 import { arrayToThings, thingsToArray } from './collections';
 import { noteNS, noteNSUrl, MY } from './vocab';
 import { getUrlExpandLocalHash } from './utils';
+import { Space } from './types'
+import { getNoteStorage } from './spaces'
+
+export const EmptySlateJSON = [{ children: [{ text: "" }] }];
+
+export function newNoteResourceName(space: Space) {
+  return `${getNoteStorage(space)}${uuid.v4()}.ttl`
+}
+
+export async function createNoteInSpace(space: Space, noteValue: any, options: any) {
+  const newNoteResourceUrl = newNoteResourceName(space)
+  const noteThingName = "note"
+
+  const noteBodyThings = arrayToThings(
+    noteValue || EmptySlateJSON,
+    createThingFromSlateJSOElement
+  );
+  let noteBodyResource = noteBodyThings.reduce((m, t) => t ? setThing(m, t) : m, createSolidDataset())
+  let noteThing = createThing({ name: noteThingName })
+  noteThing = setUrl(noteThing, MY.Garden.noteValue, noteBodyThings[0])
+  noteBodyResource = setThing(noteBodyResource, noteThing)
+  await saveSolidDatasetAt(newNoteResourceUrl, noteBodyResource, options)
+  return `${newNoteResourceUrl}#${noteThingName}`
+}
 
 export function getNoteValue(note: Thing) {
   return getUrl(note, MY.Garden.noteValue)
