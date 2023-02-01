@@ -55,6 +55,11 @@ export const MY = {
     Person: g`Person`,
 
     Collection: g`Collection`,
+
+    Webhook: g`Webhook`, // an RDF Type representing a configured Webhook.
+    subscribedTo: g`subscribedTo`, // a property of a Webhookd that indicates which Resource URL the Webhook is currently subscribed to.
+    deliversTo: g`deliversTo`, // a property of a Webhook that indicates what URL the Webhook delivers notifications to.
+    unsubscribeWith: g`unsubscribeWith`, // a property of a Webhook that indicates what URL to unsubscribe from this webhook with.
   },
 };
 

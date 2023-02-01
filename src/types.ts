@@ -16,6 +16,7 @@ export type Base58Slug = Slug;
 
 export type Profile = Thing;
 export type AppSettings = Thing;
+export type WebhookConfig = Thing;
 
 export type Space = Thing;
 export type SpacePreferences = SolidDataset;

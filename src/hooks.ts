@@ -8,22 +8,36 @@ import {
   GardenSettings,
   GardenItemType,
   GardenFile,
+  WebhookConfig,
 } from './types';
 import { getItemAll } from './garden';
 import {
-  access, getResourceAcl, getFallbackAcl,
-  getSolidDatasetWithAcl, setPublicResourceAccess, createAcl,
-  Thing, UrlString, saveAclFor, WithAccessibleAcl, hasAccessibleAcl, createAclFromFallbackAcl, hasFallbackAcl
-
+  access,
+  buildThing,
+  getUrl,
+  Thing,
+  Url,
+  UrlString,
 } from '@inrupt/solid-client';
-import { saveSolidDatasetAt, createSolidDataset, createContainerAt } from '@inrupt/solid-client/resource/solidDataset'
-import { setThing, createThing, getThing, asUrl, getThingAll } from '@inrupt/solid-client/thing/thing'
-import { getSourceUrl } from '@inrupt/solid-client/resource/resource'
+import { subscribe, unsubscribe, verifyAuthIssuer } from 'solid-webhook-client';
+import {
+  saveSolidDatasetAt,
+  createSolidDataset,
+  createContainerAt,
+} from '@inrupt/solid-client/resource/solidDataset';
+import {
+  setThing,
+  createThing,
+  getThingAll,
+  removeThing,
+} from '@inrupt/solid-client/thing/thing';
+import { getSourceUrl } from '@inrupt/solid-client/resource/resource';
 //import { setPublicAccess } from '@inrupt/solid-client/universal'
 import {
   useProfile,
   useResource,
   useThing,
+  useWebId,
   ResourceResult,
   ThingResult,
   usePublicAccess,
@@ -53,24 +67,25 @@ import {
   getPrivateFile,
   getImageStorage,
   getFileStorage,
-  getNoteStorage
+  getNoteStorage,
 } from './spaces';
-import { appSettingsUrl } from './settings';
 import {
-  createPtr,
-  createThingWithUUID,
-  encodeBase58Slug,
-  ensureUUID,
-  getUUID,
+  appSettingsUrl,
+  getWebhookConfigAll,
+  getWebhookConfigFile,
+} from './settings';
+import {
   slugToUrl,
-  newUuidUrn,
   getTitle,
-  setTitle
+  setTitle,
+  createThingWithUUID,
+  getUUID,
 } from './utils';
 import { useCallback, useMemo, useState } from 'react';
 import { getItemType } from './items';
-import { setPublicAccess } from './acl'
+import { setPublicAccess } from './acl';
 import Fuse from 'fuse.js';
+import { MY } from './vocab';
 
 export type GardenResult = ResourceResult & {
   garden: Garden;
@@ -104,6 +119,11 @@ export type SpacePreferencesWithSetupResult = SpacePreferencesResult & {
 export type AppSettingsResult = ThingResult & {
   settings: AppSettings;
   saveSettings: any;
+};
+export type WebhookConfigsResult = {
+  webhooks: WebhookConfig[];
+  addWebhookSubscription: any;
+  unsubscribeFromWebhook: any;
 };
 export type GardenFilter = {
   // right now, we only support search based filtering
@@ -530,4 +550,54 @@ export function useAppSettings(
   res.settings = res.thing;
   res.saveSettings = res.save;
   return res;
+}
+
+export default function useWebhookConfigs() {
+  const { fetch } = useAuthentication();
+  const webId = useWebId();
+  const { profile } = useProfile(webId);
+  const webhookConfigFile = profile && getWebhookConfigFile(profile);
+  const { resource, save } = useResource(webhookConfigFile);
+  const configs = resource && getWebhookConfigAll(resource);
+  async function addWebhookSubscription(
+    subscribeTo: UrlString,
+    deliverTo: UrlString
+  ) {
+    console.log(
+      `Added Webhook for ${subscribeTo} that delivers to ${deliverTo}`
+    );
+    const { unsubscribeEndpoint } = await subscribe(subscribeTo, deliverTo, {
+      fetch,
+    });
+    const config = buildThing(createThingWithUUID())
+      .addUrl(MY.Garden.unsubscribeWith, unsubscribeEndpoint)
+      .addUrl(MY.Garden.deliversTo, deliverTo)
+      .addUrl(MY.Garden.subscribedTo, subscribeTo)
+      .build();
+    console.log(
+      `Webhook configured with unsubscribe Url: ${unsubscribeEndpoint}`
+    );
+    await save(setThing(resource, config));
+    console.log(`Saved Webhook config ${getUUID(config)}`);
+    return config;
+  }
+  async function unsubscribeFromWebhook(config: WebhookConfig) {
+    const unsubscribeWith = getUrl(config, MY.Garden.unsubscribeWith);
+    if (!unsubscribeWith) {
+      throw new Error(`Unsubscrib url not preset in conifg ${getUUID(config)}`);
+    }
+
+    await unsubscribe(unsubscribeWith, {
+      authenticatedFetch: fetch,
+    });
+    console.log(`Unsubscribed from using url: ${getUUID(config)}`);
+    await save(removeThing(resource, config));
+    console.log(`Deleted Webhook config ${getUUID(config)}`);
+    return config;
+  }
+  return {
+    configs,
+    addWebhookSubscription,
+    unsubscribeFromWebhook,
+  };
 }
