@@ -31,7 +31,10 @@ import {
   getThingAll,
   removeThing,
 } from '@inrupt/solid-client/thing/thing';
-import { getSourceUrl } from '@inrupt/solid-client/resource/resource';
+import {
+  FetchError,
+  getSourceUrl,
+} from '@inrupt/solid-client/resource/resource';
 //import { setPublicAccess } from '@inrupt/solid-client/universal'
 import {
   useProfile,
@@ -464,7 +467,7 @@ async function initializeGarden(
     );
   } catch (e) {
     // don't throw an error on 412, this just means the resource is already there
-    if (e.statusCode === 412) {
+    if (e instanceof FetchError && e.statusCode === 412) {
       return null;
     } else {
       throw e;
@@ -493,7 +496,7 @@ async function maybeCreateContainerAt(file: string, options: any) {
     return await createContainerAt(file, options);
   } catch (e) {
     // don't throw an error on 412, this just means the resource is already there
-    if (e.statusCode === 412) {
+    if (e instanceof FetchError && e.statusCode === 412) {
       return null;
     } else {
       throw e;
