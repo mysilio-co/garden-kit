@@ -123,7 +123,7 @@ export type AppSettingsResult = ThingResult & {
   settings: AppSettings;
   saveSettings: any;
 };
-export type WebhookConfigsResult = {
+export type WebhooksResult = {
   webhooks: WebhookConfig[];
   addWebhookSubscription: any;
   unsubscribeFromWebhook: any;
@@ -619,13 +619,13 @@ export function useAppSettings(
   return res;
 }
 
-export default function useWebhookConfigs() {
+export function useWebhooks(): WebhooksResult {
   const { fetch } = useAuthentication();
   const webId = useWebId();
   const { profile } = useProfile(webId);
   const webhookConfigFile = profile && getWebhookConfigFile(profile);
   const { resource, save } = useResource(webhookConfigFile);
-  const configs = resource && getWebhookConfigAll(resource);
+  const webhooks = resource && getWebhookConfigAll(resource);
   async function addWebhookSubscription(
     subscribeTo: UrlString,
     deliverTo: UrlString
@@ -636,7 +636,7 @@ export default function useWebhookConfigs() {
     const { unsubscribeEndpoint } = await subscribe(subscribeTo, deliverTo, {
       fetch,
     });
-    const config = buildThing(createThingWithUUID())
+    const webhook = buildThing(createThingWithUUID())
       .addUrl(MY.Garden.unsubscribeWith, unsubscribeEndpoint)
       .addUrl(MY.Garden.deliversTo, deliverTo)
       .addUrl(MY.Garden.subscribedTo, subscribeTo)
@@ -644,26 +644,28 @@ export default function useWebhookConfigs() {
     console.log(
       `Webhook configured with unsubscribe Url: ${unsubscribeEndpoint}`
     );
-    await save(setThing(resource, config));
-    console.log(`Saved Webhook config ${getUUID(config)}`);
-    return config;
+    await save(setThing(resource, webhook));
+    console.log(`Saved Webhook config ${getUUID(webhook)}`);
+    return webhook;
   }
-  async function unsubscribeFromWebhook(config: WebhookConfig) {
-    const unsubscribeWith = getUrl(config, MY.Garden.unsubscribeWith);
+  async function unsubscribeFromWebhook(webhook: WebhookConfig) {
+    const unsubscribeWith = getUrl(webhook, MY.Garden.unsubscribeWith);
     if (!unsubscribeWith) {
-      throw new Error(`Unsubscrib url not preset in conifg ${getUUID(config)}`);
+      throw new Error(
+        `Unsubscrib url not preset in conifg ${getUUID(webhook)}`
+      );
     }
 
     await unsubscribe(unsubscribeWith, {
       authenticatedFetch: fetch,
     });
-    console.log(`Unsubscribed from using url: ${getUUID(config)}`);
-    await save(removeThing(resource, config));
-    console.log(`Deleted Webhook config ${getUUID(config)}`);
-    return config;
+    console.log(`Unsubscribed from using url: ${getUUID(webhook)}`);
+    await save(removeThing(resource, webhook));
+    console.log(`Deleted Webhook config ${getUUID(webhook)}`);
+    return webhook;
   }
   return {
-    configs,
+    webhooks,
     addWebhookSubscription,
     unsubscribeFromWebhook,
   };

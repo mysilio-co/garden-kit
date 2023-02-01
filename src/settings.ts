@@ -1,5 +1,5 @@
 import { Profile, Slug, SpacePreferences } from './types';
-import { getRootContainer, getSpacePreferencesFile, isSpace } from './spaces';
+import { getRootContainer, getSpacePreferencesFile } from './spaces';
 import { getThingAll, Thing } from '@inrupt/solid-client';
 import { MY } from './vocab';
 import { hasRDFType } from './utils';
