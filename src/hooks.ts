@@ -141,7 +141,7 @@ export function useGardenItem(
   uuid: SwrlitKey
 ): GardenItemResult {
   const res = useThingInResource(uuid, gardenUrl) as GardenItemResult;
-  res.item = res.thing
+  res.item = res.thing;
   return res;
 }
 
@@ -150,28 +150,35 @@ export function useTitledGardenItem(
   title: string
 ): GardenItemResult {
   const res = useResource(gardenUrl) as GardenItemResult;
-  res.saveResource = res.save
-  const gardenResource = res.resource
+  res.saveResource = res.save;
+  const gardenResource = res.resource;
 
-  const item = useMemo(function () {
-    return gardenResource && title && getThingAll(gardenResource).find(item => {
-      const itemTitle = getTitle(item)
-      return itemTitle && (itemTitle.toLowerCase() === title.toLowerCase())
-    })
-  }, [gardenResource, title])
+  const item = useMemo(
+    function() {
+      return (
+        gardenResource &&
+        title &&
+        getThingAll(gardenResource).find(item => {
+          const itemTitle = getTitle(item);
+          return itemTitle && itemTitle.toLowerCase() === title.toLowerCase();
+        })
+      );
+    },
+    [gardenResource, title]
+  );
 
   res.save = useCallback(
     async (newThing: Thing) => {
-      let resource = gardenResource || createSolidDataset()
-      resource = setThing(resource, newThing)
-      return await res.saveResource(resource)
+      let resource = gardenResource || createSolidDataset();
+      resource = setThing(resource, newThing);
+      return await res.saveResource(resource);
     },
     [res.saveResource, gardenResource]
   );
 
   if (item) {
-    res.thing = item
-    res.item = item
+    res.thing = item;
+    res.item = item;
   }
   return res;
 }
@@ -206,7 +213,7 @@ export function useFilteredGarden(
   filter: GardenFilter
 ): FilteredGardenResult {
   const res = useGarden(gardenKey) as FilteredGardenResult;
-  const { garden } = res
+  const { garden } = res;
   const { fuse } = useFuse(garden);
   res.filtered = useMemo(() => {
     if (filter.search) {
@@ -216,7 +223,7 @@ export function useFilteredGarden(
       return getItemAll(garden);
     }
   }, [garden, filter]);
-  return res
+  return res;
 }
 
 export function useGarden(
@@ -233,7 +240,7 @@ export function useGarden(
     gardenKey
   );
   res.garden = res.resource;
-  res.settings = settings // merge?
+  res.settings = settings; // merge?
   res.saveSettings = async (newSettings: Thing) => {
     await saveSettings(newSettings);
     await saveCopy(newSettings);
@@ -257,16 +264,19 @@ export function useGardenWithSetup(
   gardenKey: SwrlitKey,
   webId?: SwrlitKey
 ): GardenWithSetupResult {
-  const res = useGardenWithPublicAccess(gardenKey, webId) as GardenWithSetupResult;
+  const res = useGardenWithPublicAccess(
+    gardenKey,
+    webId
+  ) as GardenWithSetupResult;
   const setup = useCallback(
     async (title: string, publicRead?: boolean) => {
       if (res && res.error && res.error.statusCode === 404) {
         gardenKey = gardenKey as GardenFile;
         let settings = createThing({ url: gardenKey });
-        settings = setTitle(settings, title)
+        settings = setTitle(settings, title);
         await res.saveGarden(createSolidDataset());
         // persists to SpacePreferences
-        await res.saveSettings(settings)
+        await res.saveSettings(settings);
         publicRead && (await res.savePublicAccess({ read: publicRead }));
       } else {
         if (res && res.garden) {
@@ -364,7 +374,7 @@ export function useMetaSpaceWithSetup(webId: SwrlitKey): SpaceWithSetupResult {
     if (spaces && getMetaSpace(spaces)) {
       throw new Error(
         `MetaSpace already exists in resource with URL ${spaces &&
-        getSourceUrl(spaces)}`
+          getSourceUrl(spaces)}`
       );
     } else {
       spaces &&
@@ -388,7 +398,12 @@ export function useSpaces(webId: SwrlitKey): SpacePreferencesResult {
   return res;
 }
 
-function createSpaceInSpaces(spaces: SpacePreferences, slug: Slug, webId: string, title: string) {
+function createSpaceInSpaces(
+  spaces: SpacePreferences,
+  slug: Slug,
+  webId: string,
+  title: string
+) {
   const metaspace = getMetaSpace(spaces);
   const parent = metaspace && getContainer(metaspace);
   if (parent) {
@@ -397,102 +412,145 @@ function createSpaceInSpaces(spaces: SpacePreferences, slug: Slug, webId: string
       container && new URL('public.ttl', container).toString();
     const privateGardenUrl =
       container && new URL('private.ttl', container).toString();
-    const nurseryUrl = container && new URL('nursery.ttl', container).toString();
-    const compostUrl = container && new URL('compost.ttl', container).toString();
+    const nurseryUrl =
+      container && new URL('nursery.ttl', container).toString();
+    const compostUrl =
+      container && new URL('compost.ttl', container).toString();
     return createSpace(webId, container, slug, title, {
       compost: compostUrl,
       nursery: nurseryUrl,
       private: privateGardenUrl,
       public: publicGardenUrl,
-    })
+    });
   } else {
-    throw new Error("meta space not configured or container not specified inside metaspace, cannot create home space")
+    throw new Error(
+      'meta space not configured or container not specified inside metaspace, cannot create home space'
+    );
   }
 }
 
 function createGardenSettings(gardenKey: GardenFile, title: string) {
   let settings = createThing({ url: gardenKey });
-  settings = setTitle(settings, title)
-  return settings
+  settings = setTitle(settings, title);
+  return settings;
 }
 
 declare const fetchOptions: {
-  fetch: ((input: RequestInfo, init?: RequestInit | undefined) => Promise<Response>) & typeof globalThis.fetch;
+  fetch: ((
+    input: RequestInfo,
+    init?: RequestInit | undefined
+  ) => Promise<Response>) &
+    typeof globalThis.fetch;
 };
 
 declare const accessOptions: {
-  publicRead: boolean
-}
+  publicRead: boolean;
+};
 
-async function initializeGarden(gardenKey: GardenFile, title: string, options: Partial<typeof fetchOptions & typeof accessOptions> = {}) {
+async function initializeGarden(
+  gardenKey: GardenFile,
+  title: string,
+  options: Partial<typeof fetchOptions & typeof accessOptions> = {}
+) {
   let settings = createGardenSettings(gardenKey, title);
-  let gardenDataset = createSolidDataset()
-  gardenDataset = setThing(gardenDataset, settings)
+  let gardenDataset = createSolidDataset();
+  gardenDataset = setThing(gardenDataset, settings);
   let gardenResource;
   try {
-    gardenResource = await saveSolidDatasetAt(gardenKey, gardenDataset, options);
-  } catch (e: any) {
+    gardenResource = await saveSolidDatasetAt(
+      gardenKey,
+      gardenDataset,
+      options
+    );
+  } catch (e) {
     // don't throw an error on 412, this just means the resource is already there
     if (e.statusCode === 412) {
-      return null
+      return null;
     } else {
-      throw e
+      throw e;
     }
   }
 
   if (options.publicRead) {
-    await setPublicAccess(gardenKey, { read: true, append: false, write: false, control: false }, options)
+    await setPublicAccess(
+      gardenKey,
+      { read: true, append: false, write: false, control: false },
+      options
+    );
   }
 
-  return gardenResource
+  return gardenResource;
 }
 
-const COMPOST_DEFAULT_NAME = "Compost"
-const NURSERY_DEFAULT_NAME = "Nursery"
-const PRIVATE_DEFAULT_NAME = "Private"
-const PUBLIC_DEFAULT_NAME = "Public"
+const COMPOST_DEFAULT_NAME = 'Compost';
+const NURSERY_DEFAULT_NAME = 'Nursery';
+const PRIVATE_DEFAULT_NAME = 'Private';
+const PUBLIC_DEFAULT_NAME = 'Public';
 
 async function maybeCreateContainerAt(file: string, options: any) {
-  console.log("trying to create container", file)
+  console.log('trying to create container', file);
   try {
-    return await createContainerAt(file, options)
-  } catch (e: any) {
+    return await createContainerAt(file, options);
+  } catch (e) {
     // don't throw an error on 412, this just means the resource is already there
     if (e.statusCode === 412) {
-      return null
+      return null;
     } else {
-      throw e
+      throw e;
     }
   }
 }
 
-async function initializeSpace(spaces: SpacePreferences, slug: Slug, options?: Partial<typeof fetchOptions>) {
-  const space = getSpace(spaces, slug)
+async function initializeSpace(
+  spaces: SpacePreferences,
+  slug: Slug,
+  options?: Partial<typeof fetchOptions>
+) {
+  const space = getSpace(spaces, slug);
   if (space) {
-    const compost = getCompostFile(space)
-    const nursery = getNurseryFile(space)
-    const priv = getPrivateFile(space)
-    const pub = getPublicFile(space)
-    const images = getImageStorage(space)
-    const files = getFileStorage(space)
-    const notes = getNoteStorage(space)
+    const compost = getCompostFile(space);
+    const nursery = getNurseryFile(space);
+    const priv = getPrivateFile(space);
+    const pub = getPublicFile(space);
+    const images = getImageStorage(space);
+    const files = getFileStorage(space);
+    const notes = getNoteStorage(space);
     await Promise.all([
       compost && initializeGarden(compost, COMPOST_DEFAULT_NAME, options),
       nursery && initializeGarden(nursery, NURSERY_DEFAULT_NAME, options),
       priv && initializeGarden(priv, PRIVATE_DEFAULT_NAME, options),
-      pub && initializeGarden(pub, PUBLIC_DEFAULT_NAME, { ...options, publicRead: true }),
+      pub &&
+        initializeGarden(pub, PUBLIC_DEFAULT_NAME, {
+          ...options,
+          publicRead: true,
+        }),
       images && maybeCreateContainerAt(images, options),
       files && maybeCreateContainerAt(files, options),
-      notes && maybeCreateContainerAt(notes, options)
-    ])
+      notes && maybeCreateContainerAt(notes, options),
+    ]);
     // we track garden settings in the space preferences as well
-    if (compost) spaces = setThing(spaces, createGardenSettings(compost, COMPOST_DEFAULT_NAME))
-    if (nursery) spaces = setThing(spaces, createGardenSettings(nursery, NURSERY_DEFAULT_NAME))
-    if (priv) spaces = setThing(spaces, createGardenSettings(priv, PRIVATE_DEFAULT_NAME))
-    if (pub) spaces = setThing(spaces, createGardenSettings(pub, PUBLIC_DEFAULT_NAME))
-    return spaces
+    if (compost)
+      spaces = setThing(
+        spaces,
+        createGardenSettings(compost, COMPOST_DEFAULT_NAME)
+      );
+    if (nursery)
+      spaces = setThing(
+        spaces,
+        createGardenSettings(nursery, NURSERY_DEFAULT_NAME)
+      );
+    if (priv)
+      spaces = setThing(
+        spaces,
+        createGardenSettings(priv, PRIVATE_DEFAULT_NAME)
+      );
+    if (pub)
+      spaces = setThing(spaces, createGardenSettings(pub, PUBLIC_DEFAULT_NAME));
+    return spaces;
   } else {
-    throw new Error(`could not find space ${slug} in spaces preference file to configure`)
+    throw new Error(
+      `could not find space ${slug} in spaces preference file to configure`
+    );
   }
 }
 
@@ -500,38 +558,44 @@ export function useSpacesWithSetup(
   webId: SwrlitKey
 ): SpacePreferencesWithSetupResult {
   const res = useSpaces(webId) as SpacePreferencesWithSetupResult;
-  const { profile, save: saveProfile } = useProfile(webId)
-  const { fetch } = useAuthentication()
+  const { profile, save: saveProfile } = useProfile(webId);
+  const { fetch } = useAuthentication();
   const setup = useCallback(async () => {
     if (res.spaces && hasRequiredSpaces(res.spaces)) {
       throw new Error(
         `All required Spaces already exist in resource with URL ${res.spaces &&
-        getSourceUrl(res.spaces)}`
+          getSourceUrl(res.spaces)}`
       );
     } else {
       if (!webId) {
-        throw new Error("cannot set up spaces for null or undefined webId!")
+        throw new Error('cannot set up spaces for null or undefined webId!');
       }
-      let spaces = res.spaces
+      let spaces = res.spaces;
       if (!spaces) {
         if (res.error && res.error.statusCode === 404) {
-          await saveProfile(setDefaultSpacePreferencesFile(profile))
-          spaces = createSolidDataset()
+          await saveProfile(setDefaultSpacePreferencesFile(profile));
+          spaces = createSolidDataset();
         } else {
           throw new Error(
-            `spaces undefined but not a 404. HTTP response is ${res.error && res.error.statusCode} with error ${res.error}`
+            `spaces undefined but not a 404. HTTP response is ${res.error &&
+              res.error.statusCode} with error ${res.error}`
           );
         }
       }
       if (!getMetaSpace(spaces)) {
-        spaces = setMetaSpace(spaces, createMetaSpace(webId, profile))
+        spaces = setMetaSpace(spaces, createMetaSpace(webId, profile));
       }
       if (getSpaceAll(spaces).length <= 0) {
-        const homeSpace = createSpaceInSpaces(spaces, HomeSpaceSlug, webId, HomeSpaceDefaultName)
-        spaces = setSpace(spaces, homeSpace)
-        spaces = await initializeSpace(spaces, HomeSpaceSlug, { fetch })
+        const homeSpace = createSpaceInSpaces(
+          spaces,
+          HomeSpaceSlug,
+          webId,
+          HomeSpaceDefaultName
+        );
+        spaces = setSpace(spaces, homeSpace);
+        spaces = await initializeSpace(spaces, HomeSpaceSlug, { fetch });
       }
-      return res.saveSpaces(spaces)
+      return res.saveSpaces(spaces);
     }
   }, [webId, res, profile, fetch]);
   res.setupDefaultSpaces = setup;
