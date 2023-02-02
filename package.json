@@ -101,7 +101,7 @@
     "@inrupt/vocab-common-rdf": "^1.0.5",
     "@rdfjs/namespace": "^1.1.0",
     "@scure/base": "^1.0.0",
-    "fuse.js": "^6.5.3",
+    "fuse.js": "^6.6.2",
     "solid-webhook-client": "^0.1.1",
     "swrlit": "1.0.0-beta.14"
   }

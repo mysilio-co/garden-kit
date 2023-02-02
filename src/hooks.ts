@@ -6,17 +6,14 @@ import {
   Slug,
   AppSettings,
   GardenSettings,
-  GardenItemType,
   GardenFile,
   WebhookConfig,
 } from './types';
-import { getItemAll } from './garden';
 import {
   access,
   buildThing,
   getUrl,
   Thing,
-  Url,
   UrlString,
 } from '@inrupt/solid-client';
 import { subscribe, unsubscribe, verifyAuthIssuer } from 'solid-webhook-client';
@@ -128,16 +125,6 @@ export type WebhooksResult = {
   addWebhookSubscription: any;
   unsubscribeFromWebhook: any;
 };
-export type GardenFilter = {
-  // right now, we only support search based filtering
-  // but leave room for additional filter criteria later.
-  search: string;
-};
-type FuseEntry = {
-  name: string | null;
-  type: GardenItemType | null;
-  gardenItem: GardenItem;
-};
 
 export function useGardenItem(
   gardenUrl: SwrlitKey,
@@ -183,49 +170,6 @@ export function useTitledGardenItem(
     res.thing = item;
     res.item = item;
   }
-  return res;
-}
-
-function fuseEntryFromGardenItem(item: GardenItem): FuseEntry {
-  return {
-    gardenItem: item,
-    type: getItemType(item),
-    name: getTitle(item),
-  };
-}
-
-function fuseFromGarden(garden: Garden): FuseEntry[] {
-  return garden && getItemAll(garden).map(fuseEntryFromGardenItem);
-}
-
-export function useFuse(garden: Garden) {
-  const options: Fuse.IFuseOptions<FuseEntry> = {
-    includeScore: true,
-    threshold: 0.3,
-    keys: ['name'],
-  };
-  const [fuse] = useState(new Fuse([], options));
-  return useMemo(() => {
-    fuse.setCollection(fuseFromGarden(garden) || []);
-    return { fuse };
-  }, [garden]);
-}
-
-export function useFilteredGarden(
-  gardenKey: SwrlitKey,
-  filter: GardenFilter
-): FilteredGardenResult {
-  const res = useGarden(gardenKey) as FilteredGardenResult;
-  const { garden } = res;
-  const { fuse } = useFuse(garden);
-  res.filtered = useMemo(() => {
-    if (filter.search) {
-      const result = fuse.search(filter.search);
-      return result.map(({ item }) => item.gardenItem);
-    } else {
-      return getItemAll(garden);
-    }
-  }, [garden, filter]);
   return res;
 }
 
