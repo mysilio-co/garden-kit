@@ -630,12 +630,13 @@ export function useWebhooks(): WebhooksResult {
     subscribeTo: UrlString,
     deliverTo: UrlString
   ) {
-    console.log(
-      `Added Webhook for ${subscribeTo} that delivers to ${deliverTo}`
-    );
+    console.log(`Subscribing...`);
     const { unsubscribeEndpoint } = await subscribe(subscribeTo, deliverTo, {
       fetch,
     });
+    console.log(
+      `Added Webhook for ${subscribeTo} that delivers to ${deliverTo}`
+    );
     const webhook = buildThing(createThingWithUUID())
       .addUrl(MY.Garden.unsubscribeWith, unsubscribeEndpoint)
       .addUrl(MY.Garden.deliversTo, deliverTo)
@@ -652,10 +653,11 @@ export function useWebhooks(): WebhooksResult {
     const unsubscribeWith = getUrl(webhook, MY.Garden.unsubscribeWith);
     if (!unsubscribeWith) {
       throw new Error(
-        `Unsubscrib url not preset in conifg ${getUUID(webhook)}`
+        `Unsubscribe url not preset in conifg ${getUUID(webhook)}`
       );
     }
 
+    console.log(`Unsubscribing...`);
     await unsubscribe(unsubscribeWith, {
       authenticatedFetch: fetch,
     });
