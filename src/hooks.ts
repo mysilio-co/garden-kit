@@ -71,6 +71,7 @@ import {
 } from './spaces';
 import {
   appSettingsUrl,
+  createWebhookConfig,
   getWebhookConfigAll,
   getWebhookConfigFile,
 } from './settings';
@@ -581,11 +582,11 @@ export function useWebhooks(): WebhooksResult {
     console.log(
       `Added Webhook for ${subscribeTo} that delivers to ${deliverTo}`
     );
-    const webhook = buildThing(createThingWithUUID())
-      .addUrl(MY.Garden.unsubscribeWith, unsubscribeEndpoint)
-      .addUrl(MY.Garden.deliversTo, deliverTo)
-      .addUrl(MY.Garden.subscribedTo, subscribeTo)
-      .build();
+    const webhook = createWebhookConfig(
+      subscribeTo,
+      deliverTo,
+      unsubscribeEndpoint
+    );
     console.log(
       `Webhook configured with unsubscribe Url: ${unsubscribeEndpoint}`
     );
