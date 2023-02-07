@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0-beta.20",
+  "version": "1.0.0-beta.21",
   "license": "MIT",
   "engines": {
     "node": ">=10"
@@ -103,6 +103,6 @@
     "@scure/base": "^1.0.0",
     "fuse.js": "^6.6.2",
     "solid-webhook-client": "^0.1.1",
-    "swrlit": "1.0.0-beta.15"
+    "swrlit": "1.0.0-beta.16"
   }
 }
