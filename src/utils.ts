@@ -15,6 +15,9 @@ import {
   isThingLocal,
   WebId,
   Url,
+  createSolidDataset,
+  setThing,
+  toRdfJsDataset,
 } from '@inrupt/solid-client';
 import { RDF, OWL } from '@inrupt/vocab-common-rdf';
 import * as uuid from 'uuid';
@@ -83,10 +86,10 @@ export function slugToUrl(
     typeof resourceOrUrl === 'string'
       ? resourceOrUrl
       : getSourceUrl(resourceOrUrl);
-  return url ?
-    new URL(`#${slug}`, url).toString() :
-    // from the docs https://docs.inrupt.com/developer-tools/api/javascript/solid-client/modules/thing_thing.html#getthing
-    `https://inrupt.com/.well-known/sdk-local-node/${slug}`;
+  return url
+    ? new URL(`#${slug}`, url).toString()
+    : // from the docs https://docs.inrupt.com/developer-tools/api/javascript/solid-client/modules/thing_thing.html#getthing
+      `https://inrupt.com/.well-known/sdk-local-node/${slug}`;
 }
 
 export function createPtr(slug: Slug, uuid: UUIDString) {
@@ -151,11 +154,13 @@ export function setCreator(thing: Thing, webId: WebId): Thing {
   return setUrl(thing, DCTERMS.creator, webId);
 }
 
-export function getUrlExpandLocalHash(thing: Thing, predicate: string | Url){
-  const urlOrHash = getUrl(thing, predicate)
-  if (urlOrHash && urlOrHash[0] && (urlOrHash[0] === "#")) {
-    return `https://inrupt.com/.well-known/sdk-local-node/${urlOrHash.substring(1)}`
+export function getUrlExpandLocalHash(thing: Thing, predicate: string | Url) {
+  const urlOrHash = getUrl(thing, predicate);
+  if (urlOrHash && urlOrHash[0] && urlOrHash[0] === '#') {
+    return `https://inrupt.com/.well-known/sdk-local-node/${urlOrHash.substring(
+      1
+    )}`;
   } else {
-    return urlOrHash
+    return urlOrHash;
   }
 }

@@ -13,6 +13,7 @@ import {
   access,
   buildThing,
   getUrl,
+  setInteger,
   Thing,
   UrlString,
 } from '@inrupt/solid-client';
@@ -82,7 +83,7 @@ import {
   createThingWithUUID,
   getUUID,
 } from './utils';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getItemType } from './items';
 import { setPublicAccess } from './acl';
 import Fuse from 'fuse.js';
@@ -145,11 +146,11 @@ export function useTitledGardenItem(
   const gardenResource = res.resource;
 
   const item = useMemo(
-    function() {
+    function () {
       return (
         gardenResource &&
         title &&
-        getThingAll(gardenResource).find(item => {
+        getThingAll(gardenResource).find((item) => {
           const itemTitle = getTitle(item);
           return itemTitle && itemTitle.toLowerCase() === title.toLowerCase();
         })
@@ -321,8 +322,9 @@ export function useMetaSpaceWithSetup(webId: SwrlitKey): SpaceWithSetupResult {
   const setup = useCallback(async () => {
     if (spaces && getMetaSpace(spaces)) {
       throw new Error(
-        `MetaSpace already exists in resource with URL ${spaces &&
-          getSourceUrl(spaces)}`
+        `MetaSpace already exists in resource with URL ${
+          spaces && getSourceUrl(spaces)
+        }`
       );
     } else {
       spaces &&
@@ -511,8 +513,9 @@ export function useSpacesWithSetup(
   const setup = useCallback(async () => {
     if (res.spaces && hasRequiredSpaces(res.spaces)) {
       throw new Error(
-        `All required Spaces already exist in resource with URL ${res.spaces &&
-          getSourceUrl(res.spaces)}`
+        `All required Spaces already exist in resource with URL ${
+          res.spaces && getSourceUrl(res.spaces)
+        }`
       );
     } else {
       if (!webId) {
@@ -525,8 +528,9 @@ export function useSpacesWithSetup(
           spaces = createSolidDataset();
         } else {
           throw new Error(
-            `spaces undefined but not a 404. HTTP response is ${res.error &&
-              res.error.statusCode} with error ${res.error}`
+            `spaces undefined but not a 404. HTTP response is ${
+              res.error && res.error.statusCode
+            } with error ${res.error}`
           );
         }
       }
