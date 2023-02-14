@@ -15,9 +15,10 @@ import {
   encodeBase58Slug,
   createPtr,
   slugToUrl,
-  addUUID
+  addUUID,
 } from './utils';
 import { isItem } from './items';
+import { DCTERMS } from '@inrupt/vocab-common-rdf';
 
 export function getItemWithUUID(
   garden: Garden,
@@ -42,7 +43,17 @@ export function getItemWithTitle(
 }
 
 export function getItemAll(garden: Garden): GardenItem[] {
-  return getThingAll(garden).filter(isItem);
+  return getThingAll(garden)
+    .filter(isItem)
+    .sort(function (a: GardenItem, b: GardenItem) {
+      function getTime(date: Date | null) {
+        return date != null ? date.getTime() : 0;
+      }
+      return (
+        getTime(getDatetime(b, DCTERMS.modified)) -
+        getTime(getDatetime(a, DCTERMS.modified))
+      );
+    });
 }
 
 export function setItemWithUUID(garden: Garden, item: GardenItem): Garden {
