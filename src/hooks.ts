@@ -8,16 +8,10 @@ import {
   GardenSettings,
   GardenFile,
   WebhookConfig,
+  AccessConfig,
 } from './types';
-import {
-  access,
-  buildThing,
-  getUrl,
-  setInteger,
-  Thing,
-  UrlString,
-} from '@inrupt/solid-client';
-import { subscribe, unsubscribe, verifyAuthIssuer } from 'solid-webhook-client';
+import { access, getUrl, setUrl, Thing, UrlString } from '@inrupt/solid-client';
+import { subscribe, unsubscribe } from 'solid-webhook-client';
 import {
   saveSolidDatasetAt,
   createSolidDataset,
@@ -33,7 +27,6 @@ import {
   FetchError,
   getSourceUrl,
 } from '@inrupt/solid-client/resource/resource';
-//import { setPublicAccess } from '@inrupt/solid-client/universal'
 import {
   useProfile,
   useResource,
@@ -74,19 +67,10 @@ import {
   appSettingsUrl,
   createWebhookConfig,
   getWebhookConfigAll,
-  getWebhookConfigFile,
 } from './settings';
-import {
-  slugToUrl,
-  getTitle,
-  setTitle,
-  createThingWithUUID,
-  getUUID,
-} from './utils';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getItemType } from './items';
-import { setPublicAccess } from './acl';
-import Fuse from 'fuse.js';
+import { slugToUrl, getTitle, setTitle, getUUID } from './utils';
+import { useCallback, useMemo } from 'react';
+import { setAccess, setPublicAccess } from './acl';
 import { MY } from './vocab';
 
 export type GardenResult = ResourceResult & {
@@ -198,143 +182,11 @@ export function useGarden(
   return res;
 }
 
-export function useGardenWithPublicAccess(
-  gardenKey: SwrlitKey,
-  webId?: SwrlitKey
-): GardenWithPublicAccessResult {
-  const res = useGarden(gardenKey, webId) as GardenWithPublicAccessResult;
-  const { access, saveAccess } = usePublicAccess(gardenKey);
-  res.publicAccess = access;
-  res.savePublicAccess = saveAccess;
-  return res;
-}
-
-export function useGardenWithSetup(
-  gardenKey: SwrlitKey,
-  webId?: SwrlitKey
-): GardenWithSetupResult {
-  const res = useGardenWithPublicAccess(
-    gardenKey,
-    webId
-  ) as GardenWithSetupResult;
-  const setup = useCallback(
-    async (title: string, publicRead?: boolean) => {
-      if (res && res.error && res.error.statusCode === 404) {
-        gardenKey = gardenKey as GardenFile;
-        let settings = createThing({ url: gardenKey });
-        settings = setTitle(settings, title);
-        await res.saveGarden(createSolidDataset());
-        // persists to SpacePreferences
-        await res.saveSettings(settings);
-        publicRead && (await res.savePublicAccess({ read: publicRead }));
-      } else {
-        if (res && res.garden) {
-          throw new Error(
-            `Garden already exists in at URL ${getSourceUrl(res.garden)}`
-          );
-        }
-      }
-    },
-    [res]
-  );
-  res.setupGarden = setup;
-  return res;
-}
-
 export function useSpace(webId: SwrlitKey, slug: Slug): SpaceResult {
   const { spaces } = useSpaces(webId);
   const res = useThing(slugToUrl(spaces, slug)) as SpaceResult;
   res.space = res.thing;
   res.saveSpace = res.save;
-  return res;
-}
-
-export function useSpaceWithSetup(
-  webId: SwrlitKey,
-  slug: Slug
-): SpaceWithSetupResult {
-  const { spaces } = useSpaces(webId);
-  const res = useSpace(webId, slug) as SpaceWithSetupResult;
-  const metaspace = getMetaSpace(spaces);
-  const parent = metaspace && getContainer(metaspace);
-  const container = parent && new URL(`${slug}/`, parent).toString();
-  const publicGardenUrl =
-    container && new URL('public.ttl', container).toString();
-  const privateGardenUrl =
-    container && new URL('private.ttl', container).toString();
-  const nurseryUrl = container && new URL('nursery.ttl', container).toString();
-  const compostUrl = container && new URL('compost.ttl', container).toString();
-  const publicGarden = useGardenWithSetup(publicGardenUrl);
-  const privateGarden = useGardenWithSetup(privateGardenUrl);
-  const nursery = useGardenWithSetup(nurseryUrl);
-  const compost = useGardenWithSetup(compostUrl);
-  const setup = useCallback(async () => {
-    if (spaces && getSpace(spaces, slug)) {
-      throw new Error(
-        `Space with slug ${slug} already exists in resource with URL ${getSourceUrl(
-          spaces
-        )}`
-      );
-    } else {
-      privateGarden && (await privateGarden.setupGarden('Private'));
-      compost && (await compost.setupGarden('Compost'));
-      nursery && (await nursery.setupGarden('Nursery'));
-      publicGarden && (await publicGarden.setupGarden('Public', true));
-      spaces &&
-        container &&
-        webId &&
-        compostUrl &&
-        nurseryUrl &&
-        privateGardenUrl &&
-        publicGardenUrl &&
-        (await res.saveSpace(
-          createSpace(webId, container, HomeSpaceSlug, HomeSpaceDefaultName, {
-            compost: compostUrl,
-            nursery: nurseryUrl,
-            private: privateGardenUrl,
-            public: publicGardenUrl,
-          })
-        ));
-    }
-  }, [
-    spaces,
-    slug,
-    publicGarden,
-    privateGarden,
-    compost,
-    nursery,
-    res,
-    container,
-    webId,
-  ]);
-  res.setupSpace = setup;
-  return res;
-}
-
-export function useMetaSpace(webId: SwrlitKey): SpaceResult {
-  return useSpace(webId, MetaSpaceSlug);
-}
-
-export function useMetaSpaceWithSetup(webId: SwrlitKey): SpaceWithSetupResult {
-  const { spaces, saveSpaces } = useSpaces(webId);
-  const res = useMetaSpace(webId) as SpaceWithSetupResult;
-  const { profile } = useProfile(webId);
-  const setup = useCallback(async () => {
-    if (spaces && getMetaSpace(spaces)) {
-      throw new Error(
-        `MetaSpace already exists in resource with URL ${
-          spaces && getSourceUrl(spaces)
-        }`
-      );
-    } else {
-      spaces &&
-        webId &&
-        (await saveSpaces(
-          setMetaSpace(spaces, createMetaSpace(webId, profile))
-        ));
-    }
-  }, [spaces, webId, profile, res]);
-  res.setupSpace = setup;
   return res;
 }
 
@@ -379,9 +231,18 @@ function createSpaceInSpaces(
   }
 }
 
+function defaultFuseIndexUrl(gardenUrl: GardenFile) {
+  return gardenUrl.replace(/(\.ttl$)/, '-fuse.json');
+}
+
 function createGardenSettings(gardenKey: GardenFile, title: string) {
   let settings = createThing({ url: gardenKey });
   settings = setTitle(settings, title);
+  settings = setUrl(
+    settings,
+    MY.Garden.hasFuseIndex,
+    defaultFuseIndexUrl(gardenKey)
+  );
   return settings;
 }
 
@@ -398,8 +259,11 @@ declare const accessOptions: {
 };
 
 async function initializeGarden(
+  spaces: SpacePreferences,
+  saveSpaces: any,
   gardenKey: GardenFile,
   title: string,
+  gardenWebhooks: (gardenUrl: GardenFile) => UrlString[],
   options: Partial<typeof fetchOptions & typeof accessOptions> = {}
 ) {
   let settings = createGardenSettings(gardenKey, title);
@@ -429,6 +293,10 @@ async function initializeGarden(
     );
   }
 
+  for (const webhookUrl of gardenWebhooks(gardenKey)) {
+    await addWebhookSubscription(spaces, saveSpaces, gardenKey, webhookUrl);
+  }
+
   return gardenResource;
 }
 
@@ -453,11 +321,20 @@ async function maybeCreateContainerAt(file: string, options: any) {
 
 async function initializeSpace(
   spaces: SpacePreferences,
+  saveSpaces: any,
   slug: Slug,
+  defaultAccess: AccessConfig[],
+  gardenWebhooks: (gardenUrl: GardenFile) => UrlString[],
   options?: Partial<typeof fetchOptions>
 ) {
   const space = getSpace(spaces, slug);
   if (space) {
+    const container = getContainer(space);
+    if (container) {
+      for (const access of defaultAccess) {
+        await setAccess(container, access, options);
+      }
+    }
     const compost = getCompostFile(space);
     const nursery = getNurseryFile(space);
     const priv = getPrivateFile(space);
@@ -466,14 +343,45 @@ async function initializeSpace(
     const files = getFileStorage(space);
     const notes = getNoteStorage(space);
     await Promise.all([
-      compost && initializeGarden(compost, COMPOST_DEFAULT_NAME, options),
-      nursery && initializeGarden(nursery, NURSERY_DEFAULT_NAME, options),
-      priv && initializeGarden(priv, PRIVATE_DEFAULT_NAME, options),
+      compost &&
+        initializeGarden(
+          spaces,
+          saveSpaces,
+          compost,
+          COMPOST_DEFAULT_NAME,
+          gardenWebhooks,
+          options
+        ),
+      nursery &&
+        initializeGarden(
+          spaces,
+          saveSpaces,
+          nursery,
+          NURSERY_DEFAULT_NAME,
+          gardenWebhooks,
+          options
+        ),
+      priv &&
+        initializeGarden(
+          spaces,
+          saveSpaces,
+          priv,
+          PRIVATE_DEFAULT_NAME,
+          gardenWebhooks,
+          options
+        ),
       pub &&
-        initializeGarden(pub, PUBLIC_DEFAULT_NAME, {
-          ...options,
-          publicRead: true,
-        }),
+        initializeGarden(
+          spaces,
+          saveSpaces,
+          pub,
+          PUBLIC_DEFAULT_NAME,
+          gardenWebhooks,
+          {
+            ...options,
+            publicRead: true,
+          }
+        ),
       images && maybeCreateContainerAt(images, options),
       files && maybeCreateContainerAt(files, options),
       notes && maybeCreateContainerAt(notes, options),
@@ -510,46 +418,58 @@ export function useSpacesWithSetup(
   const res = useSpaces(webId) as SpacePreferencesWithSetupResult;
   const { profile, save: saveProfile } = useProfile(webId);
   const { fetch } = useAuthentication();
-  const setup = useCallback(async () => {
-    if (res.spaces && hasRequiredSpaces(res.spaces)) {
-      throw new Error(
-        `All required Spaces already exist in resource with URL ${
-          res.spaces && getSourceUrl(res.spaces)
-        }`
-      );
-    } else {
-      if (!webId) {
-        throw new Error('cannot set up spaces for null or undefined webId!');
-      }
-      let spaces = res.spaces;
-      if (!spaces) {
-        if (res.error && res.error.statusCode === 404) {
-          await saveProfile(setDefaultSpacePreferencesFile(profile));
-          spaces = createSolidDataset();
-        } else {
-          throw new Error(
-            `spaces undefined but not a 404. HTTP response is ${
-              res.error && res.error.statusCode
-            } with error ${res.error}`
+  const setup = useCallback(
+    async (defaultAccess, gardenWebhooks) => {
+      if (res.spaces && hasRequiredSpaces(res.spaces)) {
+        throw new Error(
+          `All required Spaces already exist in resource with URL ${
+            res.spaces && getSourceUrl(res.spaces)
+          }`
+        );
+      } else {
+        if (!webId) {
+          throw new Error('cannot set up spaces for null or undefined webId!');
+        }
+        let spaces = res.spaces;
+        if (!spaces) {
+          if (res.error && res.error.statusCode === 404) {
+            await saveProfile(setDefaultSpacePreferencesFile(profile));
+            spaces = createSolidDataset();
+          } else {
+            throw new Error(
+              `spaces undefined but not a 404. HTTP response is ${
+                res.error && res.error.statusCode
+              } with error ${res.error}`
+            );
+          }
+        }
+        if (!getMetaSpace(spaces)) {
+          spaces = setMetaSpace(spaces, createMetaSpace(webId, profile));
+        }
+        if (getSpaceAll(spaces).length <= 0) {
+          const homeSpace = createSpaceInSpaces(
+            spaces,
+            HomeSpaceSlug,
+            webId,
+            HomeSpaceDefaultName
+          );
+          spaces = setSpace(spaces, homeSpace);
+          spaces = await initializeSpace(
+            spaces,
+            res.saveSpaces,
+            HomeSpaceSlug,
+            defaultAccess,
+            gardenWebhooks,
+            {
+              fetch,
+            }
           );
         }
+        return res.saveSpaces(spaces);
       }
-      if (!getMetaSpace(spaces)) {
-        spaces = setMetaSpace(spaces, createMetaSpace(webId, profile));
-      }
-      if (getSpaceAll(spaces).length <= 0) {
-        const homeSpace = createSpaceInSpaces(
-          spaces,
-          HomeSpaceSlug,
-          webId,
-          HomeSpaceDefaultName
-        );
-        spaces = setSpace(spaces, homeSpace);
-        spaces = await initializeSpace(spaces, HomeSpaceSlug, { fetch });
-      }
-      return res.saveSpaces(spaces);
-    }
-  }, [webId, res, profile, fetch]);
+    },
+    [webId, res, profile, fetch]
+  );
   res.setupDefaultSpaces = setup;
   return res;
 }
@@ -568,56 +488,64 @@ export function useAppSettings(
   return res;
 }
 
+async function addWebhookSubscription(
+  spaces: SpacePreferences,
+  saveSpaces: any,
+  subscribeTo: UrlString,
+  deliverTo: UrlString
+) {
+  console.log(`Subscribing to webhook...`);
+  const { unsubscribeEndpoint } = await subscribe(subscribeTo, deliverTo, {
+    fetch,
+  });
+  console.log(`Added webhook for ${subscribeTo} that delivers to ${deliverTo}`);
+  const webhook = createWebhookConfig(
+    subscribeTo,
+    deliverTo,
+    unsubscribeEndpoint
+  );
+  console.log(
+    `Webhook configured with unsubscribe Url: ${unsubscribeEndpoint}`
+  );
+  await saveSpaces(setThing(spaces, webhook));
+  console.log(`Saved Webhook config ${getUUID(webhook)}`);
+  return webhook;
+}
+
+async function unsubscribeFromWebhook(
+  spaces: SpacePreferences,
+  saveSpaces: any,
+  webhook: WebhookConfig
+) {
+  const unsubscribeWith = getUrl(webhook, MY.Garden.unsubscribeWith);
+  if (!unsubscribeWith) {
+    throw new Error(`Unsubscribe url not preset in conifg ${getUUID(webhook)}`);
+  }
+
+  console.log(`Unsubscribing from webhook...`);
+  await unsubscribe(unsubscribeWith, {
+    authenticatedFetch: fetch,
+  });
+  console.log(`Unsubscribed from webhook using url: ${getUUID(webhook)}`);
+  await saveSpaces(removeThing(spaces, webhook));
+  console.log(`Deleted webhook config ${getUUID(webhook)}`);
+  return webhook;
+}
+
 export function useWebhooks(): WebhooksResult {
   const { fetch } = useAuthentication();
   const webId = useWebId();
-  const { profile } = useProfile(webId);
-  const webhookConfigFile = profile && getWebhookConfigFile(profile);
-  const { resource, save } = useResource(webhookConfigFile);
-  const webhooks = resource && getWebhookConfigAll(resource);
-  async function addWebhookSubscription(
-    subscribeTo: UrlString,
-    deliverTo: UrlString
-  ) {
-    console.log(`Subscribing...`);
-    const { unsubscribeEndpoint } = await subscribe(subscribeTo, deliverTo, {
-      fetch,
-    });
-    console.log(
-      `Added Webhook for ${subscribeTo} that delivers to ${deliverTo}`
-    );
-    const webhook = createWebhookConfig(
-      subscribeTo,
-      deliverTo,
-      unsubscribeEndpoint
-    );
-    console.log(
-      `Webhook configured with unsubscribe Url: ${unsubscribeEndpoint}`
-    );
-    await save(setThing(resource, webhook));
-    console.log(`Saved Webhook config ${getUUID(webhook)}`);
-    return webhook;
-  }
-  async function unsubscribeFromWebhook(webhook: WebhookConfig) {
-    const unsubscribeWith = getUrl(webhook, MY.Garden.unsubscribeWith);
-    if (!unsubscribeWith) {
-      throw new Error(
-        `Unsubscribe url not preset in conifg ${getUUID(webhook)}`
-      );
-    }
-
-    console.log(`Unsubscribing...`);
-    await unsubscribe(unsubscribeWith, {
-      authenticatedFetch: fetch,
-    });
-    console.log(`Unsubscribed from using url: ${getUUID(webhook)}`);
-    await save(removeThing(resource, webhook));
-    console.log(`Deleted Webhook config ${getUUID(webhook)}`);
-    return webhook;
-  }
+  const { spaces, save } = useSpaces(webId);
+  const webhooks = spaces && getWebhookConfigAll(spaces);
+  const sub = async (subscribeTo: UrlString, deliversTo: UrlString) => {
+    return await addWebhookSubscription(spaces, save, subscribeTo, deliversTo);
+  };
+  const unsub = async (webhook: WebhookConfig) => {
+    return await unsubscribeFromWebhook(spaces, save, webhook);
+  };
   return {
     webhooks,
-    addWebhookSubscription,
-    unsubscribeFromWebhook,
+    addWebhookSubscription: sub,
+    unsubscribeFromWebhook: unsub,
   };
 }

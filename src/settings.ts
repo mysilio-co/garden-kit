@@ -16,10 +16,6 @@ export function appSettingsUrl(profile: Profile, namespace: Slug, name: Slug) {
   return base && new URL(path, base).toString();
 }
 
-export function getWebhookConfigFile(profile: Profile) {
-  return getSpacePreferencesFile(profile);
-}
-
 export function isWebhookConfig(thing: Thing): boolean {
   return hasRDFType(thing, MY.Garden.Webhook);
 }
