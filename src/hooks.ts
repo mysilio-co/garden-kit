@@ -294,7 +294,13 @@ async function initializeGarden(
   }
 
   for (const webhookUrl of gardenWebhooks(gardenKey)) {
-    await addWebhookSubscription(spaces, saveSpaces, gardenKey, webhookUrl);
+    await addWebhookSubscription(
+      spaces,
+      saveSpaces,
+      gardenKey,
+      webhookUrl,
+      options
+    );
   }
 
   return gardenResource;
@@ -492,11 +498,12 @@ async function addWebhookSubscription(
   spaces: SpacePreferences,
   saveSpaces: any,
   subscribeTo: UrlString,
-  deliverTo: UrlString
+  deliverTo: UrlString,
+  options: any
 ) {
   console.log(`Subscribing to webhook...`);
   const { unsubscribeEndpoint } = await subscribe(subscribeTo, deliverTo, {
-    fetch,
+    fetch: options.fetch,
   });
   console.log(`Added webhook for ${subscribeTo} that delivers to ${deliverTo}`);
   const webhook = createWebhookConfig(
@@ -515,7 +522,8 @@ async function addWebhookSubscription(
 async function unsubscribeFromWebhook(
   spaces: SpacePreferences,
   saveSpaces: any,
-  webhook: WebhookConfig
+  webhook: WebhookConfig,
+  options: any
 ) {
   const unsubscribeWith = getUrl(webhook, MY.Garden.unsubscribeWith);
   if (!unsubscribeWith) {
@@ -524,7 +532,7 @@ async function unsubscribeFromWebhook(
 
   console.log(`Unsubscribing from webhook...`);
   await unsubscribe(unsubscribeWith, {
-    authenticatedFetch: fetch,
+    authenticatedFetch: options.fetch,
   });
   console.log(`Unsubscribed from webhook using url: ${getUUID(webhook)}`);
   await saveSpaces(removeThing(spaces, webhook));
@@ -538,10 +546,12 @@ export function useWebhooks(): WebhooksResult {
   const { spaces, save } = useSpaces(webId);
   const webhooks = spaces && getWebhookConfigAll(spaces);
   const sub = async (subscribeTo: UrlString, deliversTo: UrlString) => {
-    return await addWebhookSubscription(spaces, save, subscribeTo, deliversTo);
+    return await addWebhookSubscription(spaces, save, subscribeTo, deliversTo, {
+      fetch,
+    });
   };
   const unsub = async (webhook: WebhookConfig) => {
-    return await unsubscribeFromWebhook(spaces, save, webhook);
+    return await unsubscribeFromWebhook(spaces, save, webhook, { fetch });
   };
   return {
     webhooks,
