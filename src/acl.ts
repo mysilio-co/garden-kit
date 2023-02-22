@@ -92,15 +92,11 @@ export async function setAccess(
     // In most cases, we want to set both the default access for a folder
     // and the resource access to the container itself.
     if (access.public) {
-      acl = setPublicDefaultAccess(acl, options.default.access);
-      acl = setPublicResourceAccess(acl, options.default.access);
+      acl = setPublicDefaultAccess(acl, access.access);
+      acl = setPublicResourceAccess(acl, access.access);
     } else {
       acl = setAgentDefaultAccess(acl, access.agent, access.access);
-      acl = setAgentResourceAccess(
-        acl,
-        options.default.agent,
-        options.default.access
-      );
+      acl = setAgentResourceAccess(acl, access.agent, access.access);
     }
     await saveAclFor(resourceWithAcl, acl, options);
   } else {
