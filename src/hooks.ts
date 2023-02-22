@@ -246,6 +246,25 @@ function createGardenSettings(gardenKey: GardenFile, title: string) {
   return settings;
 }
 
+async function initializeGardenSettings(
+  spaces: SpacePreferences,
+  gardenKey: GardenFile,
+  title: string,
+  gardenWebhooks: (gardenUrl: GardenFile) => UrlString[],
+  options: any
+) {
+  spaces = setThing(spaces, createGardenSettings(gardenKey, title));
+  for (const webhookUrl of gardenWebhooks(gardenKey)) {
+    spaces = await addWebhookSubscription(
+      spaces,
+      gardenKey,
+      webhookUrl,
+      options
+    );
+  }
+  return spaces;
+}
+
 declare const fetchOptions: {
   fetch: ((
     input: RequestInfo,
@@ -259,11 +278,8 @@ declare const accessOptions: {
 };
 
 async function initializeGarden(
-  spaces: SpacePreferences,
-  saveSpaces: any,
   gardenKey: GardenFile,
   title: string,
-  gardenWebhooks: (gardenUrl: GardenFile) => UrlString[],
   options: Partial<typeof fetchOptions & typeof accessOptions> = {}
 ) {
   let settings = createGardenSettings(gardenKey, title);
@@ -289,16 +305,6 @@ async function initializeGarden(
     await setPublicAccess(
       gardenKey,
       { read: true, append: false, write: false, control: false },
-      options
-    );
-  }
-
-  for (const webhookUrl of gardenWebhooks(gardenKey)) {
-    await addWebhookSubscription(
-      spaces,
-      saveSpaces,
-      gardenKey,
-      webhookUrl,
       options
     );
   }
@@ -349,67 +355,51 @@ async function initializeSpace(
     const files = getFileStorage(space);
     const notes = getNoteStorage(space);
     await Promise.all([
-      compost &&
-        initializeGarden(
-          spaces,
-          saveSpaces,
-          compost,
-          COMPOST_DEFAULT_NAME,
-          gardenWebhooks,
-          options
-        ),
-      nursery &&
-        initializeGarden(
-          spaces,
-          saveSpaces,
-          nursery,
-          NURSERY_DEFAULT_NAME,
-          gardenWebhooks,
-          options
-        ),
-      priv &&
-        initializeGarden(
-          spaces,
-          saveSpaces,
-          priv,
-          PRIVATE_DEFAULT_NAME,
-          gardenWebhooks,
-          options
-        ),
+      compost && initializeGarden(compost, COMPOST_DEFAULT_NAME, options),
+      nursery && initializeGarden(nursery, NURSERY_DEFAULT_NAME, options),
+      priv && initializeGarden(priv, PRIVATE_DEFAULT_NAME, options),
       pub &&
-        initializeGarden(
-          spaces,
-          saveSpaces,
-          pub,
-          PUBLIC_DEFAULT_NAME,
-          gardenWebhooks,
-          {
-            ...options,
-            publicRead: true,
-          }
-        ),
+        initializeGarden(pub, PUBLIC_DEFAULT_NAME, {
+          ...options,
+          publicRead: true,
+        }),
       images && maybeCreateContainerAt(images, options),
       files && maybeCreateContainerAt(files, options),
       notes && maybeCreateContainerAt(notes, options),
     ]);
     // we track garden settings in the space preferences as well
     if (compost)
-      spaces = setThing(
+      spaces = await initializeGardenSettings(
         spaces,
-        createGardenSettings(compost, COMPOST_DEFAULT_NAME)
+        compost,
+        COMPOST_DEFAULT_NAME,
+        gardenWebhooks,
+        options
       );
     if (nursery)
-      spaces = setThing(
+      spaces = await initializeGardenSettings(
         spaces,
-        createGardenSettings(nursery, NURSERY_DEFAULT_NAME)
+        nursery,
+        NURSERY_DEFAULT_NAME,
+        gardenWebhooks,
+        options
       );
     if (priv)
-      spaces = setThing(
+      spaces = await initializeGardenSettings(
         spaces,
-        createGardenSettings(priv, PRIVATE_DEFAULT_NAME)
+        priv,
+        PRIVATE_DEFAULT_NAME,
+        gardenWebhooks,
+        options
       );
     if (pub)
-      spaces = setThing(spaces, createGardenSettings(pub, PUBLIC_DEFAULT_NAME));
+      spaces = await initializeGardenSettings(
+        spaces,
+        pub,
+        PUBLIC_DEFAULT_NAME,
+        gardenWebhooks,
+        options
+      );
     return spaces;
   } else {
     throw new Error(
@@ -496,7 +486,6 @@ export function useAppSettings(
 
 async function addWebhookSubscription(
   spaces: SpacePreferences,
-  saveSpaces: any,
   subscribeTo: UrlString,
   deliverTo: UrlString,
   options: any
@@ -514,14 +503,11 @@ async function addWebhookSubscription(
   console.log(
     `Webhook configured with unsubscribe Url: ${unsubscribeEndpoint}`
   );
-  await saveSpaces(setThing(spaces, webhook));
-  console.log(`Saved Webhook config ${getUUID(webhook)}`);
-  return webhook;
+  return setThing(spaces, webhook);
 }
 
 async function unsubscribeFromWebhook(
   spaces: SpacePreferences,
-  saveSpaces: any,
   webhook: WebhookConfig,
   options: any
 ) {
@@ -534,10 +520,8 @@ async function unsubscribeFromWebhook(
   await unsubscribe(unsubscribeWith, {
     authenticatedFetch: options.fetch,
   });
-  console.log(`Unsubscribed from webhook using url: ${getUUID(webhook)}`);
-  await saveSpaces(removeThing(spaces, webhook));
-  console.log(`Deleted webhook config ${getUUID(webhook)}`);
-  return webhook;
+  console.log(`Unsubscribed from webhook using url: ${unsubscribeWith}`);
+  return removeThing(spaces, webhook);
 }
 
 export function useWebhooks(): WebhooksResult {
@@ -546,12 +530,14 @@ export function useWebhooks(): WebhooksResult {
   const { spaces, save } = useSpaces(webId);
   const webhooks = spaces && getWebhookConfigAll(spaces);
   const sub = async (subscribeTo: UrlString, deliversTo: UrlString) => {
-    return await addWebhookSubscription(spaces, save, subscribeTo, deliversTo, {
-      fetch,
-    });
+    return await save(
+      addWebhookSubscription(spaces, subscribeTo, deliversTo, {
+        fetch,
+      })
+    );
   };
   const unsub = async (webhook: WebhookConfig) => {
-    return await unsubscribeFromWebhook(spaces, save, webhook, { fetch });
+    return await save(unsubscribeFromWebhook(spaces, webhook, { fetch }));
   };
   return {
     webhooks,
