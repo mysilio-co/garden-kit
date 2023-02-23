@@ -8,16 +8,35 @@ import {
   GardenSettings,
   GardenItemType,
   GardenFile,
-} from './types';
-import { getItemAll } from './garden';
+} from './types'
+import { getItemAll } from './garden'
 import {
-  access, getResourceAcl, getFallbackAcl,
-  getSolidDatasetWithAcl, setPublicResourceAccess, createAcl,
-  Thing, UrlString, saveAclFor, WithAccessibleAcl, hasAccessibleAcl, createAclFromFallbackAcl, hasFallbackAcl
-
-} from '@inrupt/solid-client';
-import { saveSolidDatasetAt, createSolidDataset, createContainerAt } from '@inrupt/solid-client/resource/solidDataset'
-import { setThing, createThing, getThing, asUrl, getThingAll } from '@inrupt/solid-client/thing/thing'
+  access,
+  getResourceAcl,
+  getFallbackAcl,
+  getSolidDatasetWithAcl,
+  setPublicResourceAccess,
+  createAcl,
+  Thing,
+  UrlString,
+  saveAclFor,
+  WithAccessibleAcl,
+  hasAccessibleAcl,
+  createAclFromFallbackAcl,
+  hasFallbackAcl,
+} from '@inrupt/solid-client'
+import {
+  saveSolidDatasetAt,
+  createSolidDataset,
+  createContainerAt,
+} from '@inrupt/solid-client/resource/solidDataset'
+import {
+  setThing,
+  createThing,
+  getThing,
+  asUrl,
+  getThingAll,
+} from '@inrupt/solid-client/thing/thing'
 import { getSourceUrl } from '@inrupt/solid-client/resource/resource'
 //import { setPublicAccess } from '@inrupt/solid-client/universal'
 import {
@@ -30,7 +49,7 @@ import {
   useThingInResource,
   useAuthentication,
   SwrlitKey,
-} from 'swrlit';
+} from 'swrlit'
 
 import {
   createMetaSpace,
@@ -53,9 +72,9 @@ import {
   getPrivateFile,
   getImageStorage,
   getFileStorage,
-  getNoteStorage
-} from './spaces';
-import { appSettingsUrl } from './settings';
+  getNoteStorage,
+} from './spaces'
+import { appSettingsUrl } from './settings'
 import {
   createPtr,
   createThingWithUUID,
@@ -65,80 +84,87 @@ import {
   slugToUrl,
   newUuidUrn,
   getTitle,
-  setTitle
-} from './utils';
-import { useCallback, useMemo, useState } from 'react';
-import { getItemType } from './items';
+  setTitle,
+} from './utils'
+import { useCallback, useMemo, useState } from 'react'
+import { getItemType } from './items'
 import { setPublicAccess } from './acl'
-import Fuse from 'fuse.js';
+import Fuse from 'fuse.js'
 
 export type GardenResult = ResourceResult & {
-  garden: Garden;
-  saveGarden: any;
-  settings: GardenSettings;
-  saveSettings: any;
-};
+  garden: Garden
+  saveGarden: any
+  settings: GardenSettings
+  saveSettings: any
+}
 export type GardenWithPublicAccessResult = GardenResult & {
-  publicAccess: access.Access;
-  savePublicAccess: any;
-};
+  publicAccess: access.Access
+  savePublicAccess: any
+}
 export type GardenWithSetupResult = GardenWithPublicAccessResult & {
-  setupGarden: any;
-};
-export type FilteredGardenResult = GardenResult & { filtered: GardenItem[] };
+  setupGarden: any
+}
+export type FilteredGardenResult = GardenResult & { filtered: GardenItem[] }
 export type GardenItemResult = ThingResult & {
-  item: GardenItem;
-  saveToGarden: any;
-};
-export type SpaceResult = ThingResult & { space: Space; saveSpace: any };
+  item: GardenItem
+  saveToGarden: any
+}
+export type SpaceResult = ThingResult & { space: Space; saveSpace: any }
 export type SpaceWithSetupResult = SpaceResult & {
-  setupSpace: any;
-};
+  setupSpace: any
+}
 export type SpacePreferencesResult = ResourceResult & {
-  spaces: SpacePreferences;
-  saveSpaces: any;
-};
+  spaces: SpacePreferences
+  saveSpaces: any
+}
 export type SpacePreferencesWithSetupResult = SpacePreferencesResult & {
-  setupDefaultSpaces: any;
-};
+  setupDefaultSpaces: any
+}
 export type AppSettingsResult = ThingResult & {
-  settings: AppSettings;
-  saveSettings: any;
-};
+  settings: AppSettings
+  saveSettings: any
+}
 export type GardenFilter = {
   // right now, we only support search based filtering
   // but leave room for additional filter criteria later.
-  search: string;
-};
+  search: string
+}
 type FuseEntry = {
-  name: string | null;
-  type: GardenItemType | null;
-  gardenItem: GardenItem;
-};
+  name: string | null
+  type: GardenItemType | null
+  gardenItem: GardenItem
+}
 
 export function useGardenItem(
   gardenUrl: SwrlitKey,
   uuid: SwrlitKey
 ): GardenItemResult {
-  const res = useThingInResource(uuid, gardenUrl) as GardenItemResult;
+  const res = useThingInResource(uuid, gardenUrl) as GardenItemResult
   res.item = res.thing
-  return res;
+  return res
 }
 
 export function useTitledGardenItem(
   gardenUrl: SwrlitKey,
   title: string
 ): GardenItemResult {
-  const res = useResource(gardenUrl) as GardenItemResult;
+  const res = useResource(gardenUrl) as GardenItemResult
   res.saveResource = res.save
   const gardenResource = res.resource
 
-  const item = useMemo(function () {
-    return gardenResource && title && getThingAll(gardenResource).find(item => {
-      const itemTitle = getTitle(item)
-      return itemTitle && (itemTitle.toLowerCase() === title.toLowerCase())
-    })
-  }, [gardenResource, title])
+  const item = useMemo(
+    function () {
+      return (
+        gardenResource &&
+        title &&
+        getThingAll(gardenResource).find((item) => {
+          const itemTitle = getTitle(item)
+          return itemTitle && itemTitle.toLowerCase() === title.toLowerCase()
+        })
+      )
+    },
+    [gardenResource, title]
+  )
 
   res.save = useCallback(
     async (newThing: Thing) => {
@@ -147,13 +173,13 @@ export function useTitledGardenItem(
       return await res.saveResource(resource)
     },
     [res.saveResource, gardenResource]
-  );
+  )
 
   if (item) {
     res.thing = item
     res.item = item
   }
-  return res;
+  return res
 }
 
 function fuseEntryFromGardenItem(item: GardenItem): FuseEntry {
@@ -161,11 +187,11 @@ function fuseEntryFromGardenItem(item: GardenItem): FuseEntry {
     gardenItem: item,
     type: getItemType(item),
     name: getTitle(item),
-  };
+  }
 }
 
 function fuseFromGarden(garden: Garden): FuseEntry[] {
-  return garden && getItemAll(garden).map(fuseEntryFromGardenItem);
+  return garden && getItemAll(garden).map(fuseEntryFromGardenItem)
 }
 
 export function useFuse(garden: Garden) {
@@ -173,29 +199,29 @@ export function useFuse(garden: Garden) {
     includeScore: true,
     threshold: 0.3,
     keys: ['name'],
-  };
-  const [fuse] = useState(new Fuse([], options));
+  }
+  const [fuse] = useState(new Fuse([], options))
   return useMemo(() => {
-    fuse.setCollection(fuseFromGarden(garden) || []);
-    return { fuse };
-  }, [garden]);
+    fuse.setCollection(fuseFromGarden(garden) || [])
+    return { fuse }
+  }, [garden])
 }
 
 export function useFilteredGarden(
   gardenKey: SwrlitKey,
   filter: GardenFilter
 ): FilteredGardenResult {
-  const res = useGarden(gardenKey) as FilteredGardenResult;
+  const res = useGarden(gardenKey) as FilteredGardenResult
   const { garden } = res
-  const { fuse } = useFuse(garden);
+  const { fuse } = useFuse(garden)
   res.filtered = useMemo(() => {
     if (filter.search) {
-      const result = fuse.search(filter.search);
-      return result.map(({ item }) => item.gardenItem);
+      const result = fuse.search(filter.search)
+      return result.map(({ item }) => item.gardenItem)
     } else {
-      return getItemAll(garden);
+      return getItemAll(garden)
     }
-  }, [garden, filter]);
+  }, [garden, filter])
   return res
 }
 
@@ -205,102 +231,105 @@ export function useGarden(
 ): GardenResult {
   // Will read and set settings on a Garden
   // Will persist settings to
-  const { profile } = useProfile(webId);
-  const res = useResource(gardenKey) as GardenResult;
-  const { thing: settings, save: saveSettings } = useThing(gardenKey);
+  const { profile } = useProfile(webId)
+  const res = useResource(gardenKey) as GardenResult
+  const { thing: settings, save: saveSettings } = useThing(gardenKey)
   const { save: saveCopy } = useThingInResource(
     profile && getSpacePreferencesFile(profile),
     gardenKey
-  );
-  res.garden = res.resource;
+  )
+  res.garden = res.resource
   res.settings = settings // merge?
   res.saveSettings = async (newSettings: Thing) => {
-    await saveSettings(newSettings);
-    await saveCopy(newSettings);
-  };
-  res.saveGarden = res.save;
-  return res;
+    await saveSettings(newSettings)
+    await saveCopy(newSettings)
+  }
+  res.saveGarden = res.save
+  return res
 }
 
 export function useGardenWithPublicAccess(
   gardenKey: SwrlitKey,
   webId?: SwrlitKey
 ): GardenWithPublicAccessResult {
-  const res = useGarden(gardenKey, webId) as GardenWithPublicAccessResult;
-  const { access, saveAccess } = usePublicAccess(gardenKey);
-  res.publicAccess = access;
-  res.savePublicAccess = saveAccess;
-  return res;
+  const res = useGarden(gardenKey, webId) as GardenWithPublicAccessResult
+  const { access, saveAccess } = usePublicAccess(gardenKey)
+  res.publicAccess = access
+  res.savePublicAccess = saveAccess
+  return res
 }
 
 export function useGardenWithSetup(
   gardenKey: SwrlitKey,
   webId?: SwrlitKey
 ): GardenWithSetupResult {
-  const res = useGardenWithPublicAccess(gardenKey, webId) as GardenWithSetupResult;
+  const res = useGardenWithPublicAccess(
+    gardenKey,
+    webId
+  ) as GardenWithSetupResult
   const setup = useCallback(
     async (title: string, publicRead?: boolean) => {
       if (res && res.error && res.error.statusCode === 404) {
-        gardenKey = gardenKey as GardenFile;
-        let settings = createThing({ url: gardenKey });
+        gardenKey = gardenKey as GardenFile
+        let settings = createThing({ url: gardenKey })
         settings = setTitle(settings, title)
-        await res.saveGarden(createSolidDataset());
+        await res.saveGarden(createSolidDataset())
         // persists to SpacePreferences
         await res.saveSettings(settings)
-        publicRead && (await res.savePublicAccess({ read: publicRead }));
+        publicRead && (await res.savePublicAccess({ read: publicRead }))
       } else {
         if (res && res.garden) {
           throw new Error(
             `Garden already exists in at URL ${getSourceUrl(res.garden)}`
-          );
+          )
         }
       }
     },
     [res]
-  );
-  res.setupGarden = setup;
-  return res;
+  )
+  res.setupGarden = setup
+  return res
 }
 
 export function useSpace(webId: SwrlitKey, slug: Slug): SpaceResult {
-  const { spaces } = useSpaces(webId);
-  const res = useThing(slugToUrl(spaces, slug)) as SpaceResult;
-  res.space = res.thing;
-  res.saveSpace = res.save;
-  return res;
+  const { spaces } = useSpaces(webId)
+  const res = useThing(slugToUrl(spaces, slug)) as SpaceResult
+  res.space = res.thing
+  res.saveSpace = res.save
+  return res
 }
 
 export function useSpaceWithSetup(
   webId: SwrlitKey,
   slug: Slug
 ): SpaceWithSetupResult {
-  const { spaces } = useSpaces(webId);
-  const res = useSpace(webId, slug) as SpaceWithSetupResult;
-  const metaspace = getMetaSpace(spaces);
-  const parent = metaspace && getContainer(metaspace);
-  const container = parent && new URL(`${slug}/`, parent).toString();
+  const { spaces } = useSpaces(webId)
+  const res = useSpace(webId, slug) as SpaceWithSetupResult
+  const metaspace = getMetaSpace(spaces)
+  const parent = metaspace && getContainer(metaspace)
+  const container = parent && new URL(`${slug}/`, parent).toString()
   const publicGardenUrl =
-    container && new URL('public.ttl', container).toString();
+    container && new URL('public.ttl', container).toString()
   const privateGardenUrl =
-    container && new URL('private.ttl', container).toString();
-  const nurseryUrl = container && new URL('nursery.ttl', container).toString();
-  const compostUrl = container && new URL('compost.ttl', container).toString();
-  const publicGarden = useGardenWithSetup(publicGardenUrl);
-  const privateGarden = useGardenWithSetup(privateGardenUrl);
-  const nursery = useGardenWithSetup(nurseryUrl);
-  const compost = useGardenWithSetup(compostUrl);
+    container && new URL('private.ttl', container).toString()
+  const nurseryUrl = container && new URL('nursery.ttl', container).toString()
+  const compostUrl = container && new URL('compost.ttl', container).toString()
+  const publicGarden = useGardenWithSetup(publicGardenUrl)
+  const privateGarden = useGardenWithSetup(privateGardenUrl)
+  const nursery = useGardenWithSetup(nurseryUrl)
+  const compost = useGardenWithSetup(compostUrl)
   const setup = useCallback(async () => {
     if (spaces && getSpace(spaces, slug)) {
       throw new Error(
         `Space with slug ${slug} already exists in resource with URL ${getSourceUrl(
           spaces
         )}`
-      );
+      )
     } else {
-      privateGarden && (await privateGarden.setupGarden('Private'));
-      compost && (await compost.setupGarden('Compost'));
-      nursery && (await nursery.setupGarden('Nursery'));
-      publicGarden && (await publicGarden.setupGarden('Public', true));
+      privateGarden && (await privateGarden.setupGarden('Private'))
+      compost && (await compost.setupGarden('Compost'))
+      nursery && (await nursery.setupGarden('Nursery'))
+      publicGarden && (await publicGarden.setupGarden('Public', true))
       spaces &&
         container &&
         webId &&
@@ -315,7 +344,7 @@ export function useSpaceWithSetup(
             private: privateGardenUrl,
             public: publicGardenUrl,
           })
-        ));
+        ))
     }
   }, [
     spaces,
@@ -327,58 +356,64 @@ export function useSpaceWithSetup(
     res,
     container,
     webId,
-  ]);
-  res.setupSpace = setup;
-  return res;
+  ])
+  res.setupSpace = setup
+  return res
 }
 
 export function useMetaSpace(webId: SwrlitKey): SpaceResult {
-  return useSpace(webId, MetaSpaceSlug);
+  return useSpace(webId, MetaSpaceSlug)
 }
 
 export function useMetaSpaceWithSetup(webId: SwrlitKey): SpaceWithSetupResult {
-  const { spaces, saveSpaces } = useSpaces(webId);
-  const res = useMetaSpace(webId) as SpaceWithSetupResult;
-  const { profile } = useProfile(webId);
+  const { spaces, saveSpaces } = useSpaces(webId)
+  const res = useMetaSpace(webId) as SpaceWithSetupResult
+  const { profile } = useProfile(webId)
   const setup = useCallback(async () => {
     if (spaces && getMetaSpace(spaces)) {
       throw new Error(
-        `MetaSpace already exists in resource with URL ${spaces &&
-        getSourceUrl(spaces)}`
-      );
+        `MetaSpace already exists in resource with URL ${
+          spaces && getSourceUrl(spaces)
+        }`
+      )
     } else {
       spaces &&
         webId &&
         (await saveSpaces(
           setMetaSpace(spaces, createMetaSpace(webId, profile))
-        ));
+        ))
     }
-  }, [spaces, webId, profile, res]);
-  res.setupSpace = setup;
-  return res;
+  }, [spaces, webId, profile, res])
+  res.setupSpace = setup
+  return res
 }
 
 export function useSpaces(webId: SwrlitKey): SpacePreferencesResult {
-  const { profile } = useProfile(webId);
+  const { profile } = useProfile(webId)
   const res = useResource(
     profile && getSpacePreferencesFile(profile)
-  ) as SpacePreferencesResult;
-  res.spaces = res.resource;
-  res.saveSpaces = res.save;
-  return res;
+  ) as SpacePreferencesResult
+  res.spaces = res.resource
+  res.saveSpaces = res.save
+  return res
 }
 
-function createSpaceInSpaces(spaces: SpacePreferences, slug: Slug, webId: string, title: string) {
-  const metaspace = getMetaSpace(spaces);
-  const parent = metaspace && getContainer(metaspace);
+function createSpaceInSpaces(
+  spaces: SpacePreferences,
+  slug: Slug,
+  webId: string,
+  title: string
+) {
+  const metaspace = getMetaSpace(spaces)
+  const parent = metaspace && getContainer(metaspace)
   if (parent) {
-    const container = new URL(`${slug}/`, parent).toString();
+    const container = new URL(`${slug}/`, parent).toString()
     const publicGardenUrl =
-      container && new URL('public.ttl', container).toString();
+      container && new URL('public.ttl', container).toString()
     const privateGardenUrl =
-      container && new URL('private.ttl', container).toString();
-    const nurseryUrl = container && new URL('nursery.ttl', container).toString();
-    const compostUrl = container && new URL('compost.ttl', container).toString();
+      container && new URL('private.ttl', container).toString()
+    const nurseryUrl = container && new URL('nursery.ttl', container).toString()
+    const compostUrl = container && new URL('compost.ttl', container).toString()
     return createSpace(webId, container, slug, title, {
       compost: compostUrl,
       nursery: nurseryUrl,
@@ -386,31 +421,41 @@ function createSpaceInSpaces(spaces: SpacePreferences, slug: Slug, webId: string
       public: publicGardenUrl,
     })
   } else {
-    throw new Error("meta space not configured or container not specified inside metaspace, cannot create home space")
+    throw new Error(
+      'meta space not configured or container not specified inside metaspace, cannot create home space'
+    )
   }
 }
 
 function createGardenSettings(gardenKey: GardenFile, title: string) {
-  let settings = createThing({ url: gardenKey });
+  let settings = createThing({ url: gardenKey })
   settings = setTitle(settings, title)
   return settings
 }
 
 declare const fetchOptions: {
-  fetch: ((input: RequestInfo, init?: RequestInit | undefined) => Promise<Response>) & typeof globalThis.fetch;
-};
+  fetch: ((
+    input: RequestInfo,
+    init?: RequestInit | undefined
+  ) => Promise<Response>) &
+    typeof globalThis.fetch
+}
 
 declare const accessOptions: {
   publicRead: boolean
 }
 
-async function initializeGarden(gardenKey: GardenFile, title: string, options: Partial<typeof fetchOptions & typeof accessOptions> = {}) {
-  let settings = createGardenSettings(gardenKey, title);
+async function initializeGarden(
+  gardenKey: GardenFile,
+  title: string,
+  options: Partial<typeof fetchOptions & typeof accessOptions> = {}
+) {
+  let settings = createGardenSettings(gardenKey, title)
   let gardenDataset = createSolidDataset()
   gardenDataset = setThing(gardenDataset, settings)
-  let gardenResource;
+  let gardenResource
   try {
-    gardenResource = await saveSolidDatasetAt(gardenKey, gardenDataset, options);
+    gardenResource = await saveSolidDatasetAt(gardenKey, gardenDataset, options)
   } catch (e: any) {
     // don't throw an error on 412, this just means the resource is already there
     if (e.statusCode === 412) {
@@ -421,19 +466,23 @@ async function initializeGarden(gardenKey: GardenFile, title: string, options: P
   }
 
   if (options.publicRead) {
-    await setPublicAccess(gardenKey, { read: true, append: false, write: false, control: false }, options)
+    await setPublicAccess(
+      gardenKey,
+      { read: true, append: false, write: false, control: false },
+      options
+    )
   }
 
   return gardenResource
 }
 
-const COMPOST_DEFAULT_NAME = "Compost"
-const NURSERY_DEFAULT_NAME = "Nursery"
-const PRIVATE_DEFAULT_NAME = "Private"
-const PUBLIC_DEFAULT_NAME = "Public"
+const COMPOST_DEFAULT_NAME = 'Compost'
+const NURSERY_DEFAULT_NAME = 'Nursery'
+const PRIVATE_DEFAULT_NAME = 'Private'
+const PUBLIC_DEFAULT_NAME = 'Public'
 
 async function maybeCreateContainerAt(file: string, options: any) {
-  console.log("trying to create container", file)
+  console.log('trying to create container', file)
   try {
     return await createContainerAt(file, options)
   } catch (e: any) {
@@ -446,7 +495,11 @@ async function maybeCreateContainerAt(file: string, options: any) {
   }
 }
 
-async function initializeSpace(spaces: SpacePreferences, slug: Slug, options?: Partial<typeof fetchOptions>) {
+async function initializeSpace(
+  spaces: SpacePreferences,
+  slug: Slug,
+  options?: Partial<typeof fetchOptions>
+) {
   const space = getSpace(spaces, slug)
   if (space) {
     const compost = getCompostFile(space)
@@ -460,37 +513,57 @@ async function initializeSpace(spaces: SpacePreferences, slug: Slug, options?: P
       compost && initializeGarden(compost, COMPOST_DEFAULT_NAME, options),
       nursery && initializeGarden(nursery, NURSERY_DEFAULT_NAME, options),
       priv && initializeGarden(priv, PRIVATE_DEFAULT_NAME, options),
-      pub && initializeGarden(pub, PUBLIC_DEFAULT_NAME, { ...options, publicRead: true }),
+      pub &&
+        initializeGarden(pub, PUBLIC_DEFAULT_NAME, {
+          ...options,
+          publicRead: true,
+        }),
       images && maybeCreateContainerAt(images, options),
       files && maybeCreateContainerAt(files, options),
-      notes && maybeCreateContainerAt(notes, options)
+      notes && maybeCreateContainerAt(notes, options),
     ])
     // we track garden settings in the space preferences as well
-    if (compost) spaces = setThing(spaces, createGardenSettings(compost, COMPOST_DEFAULT_NAME))
-    if (nursery) spaces = setThing(spaces, createGardenSettings(nursery, NURSERY_DEFAULT_NAME))
-    if (priv) spaces = setThing(spaces, createGardenSettings(priv, PRIVATE_DEFAULT_NAME))
-    if (pub) spaces = setThing(spaces, createGardenSettings(pub, PUBLIC_DEFAULT_NAME))
+    if (compost)
+      spaces = setThing(
+        spaces,
+        createGardenSettings(compost, COMPOST_DEFAULT_NAME)
+      )
+    if (nursery)
+      spaces = setThing(
+        spaces,
+        createGardenSettings(nursery, NURSERY_DEFAULT_NAME)
+      )
+    if (priv)
+      spaces = setThing(
+        spaces,
+        createGardenSettings(priv, PRIVATE_DEFAULT_NAME)
+      )
+    if (pub)
+      spaces = setThing(spaces, createGardenSettings(pub, PUBLIC_DEFAULT_NAME))
     return spaces
   } else {
-    throw new Error(`could not find space ${slug} in spaces preference file to configure`)
+    throw new Error(
+      `could not find space ${slug} in spaces preference file to configure`
+    )
   }
 }
 
 export function useSpacesWithSetup(
   webId: SwrlitKey
 ): SpacePreferencesWithSetupResult {
-  const res = useSpaces(webId) as SpacePreferencesWithSetupResult;
+  const res = useSpaces(webId) as SpacePreferencesWithSetupResult
   const { profile, save: saveProfile } = useProfile(webId)
   const { fetch } = useAuthentication()
   const setup = useCallback(async () => {
     if (res.spaces && hasRequiredSpaces(res.spaces)) {
       throw new Error(
-        `All required Spaces already exist in resource with URL ${res.spaces &&
-        getSourceUrl(res.spaces)}`
-      );
+        `All required Spaces already exist in resource with URL ${
+          res.spaces && getSourceUrl(res.spaces)
+        }`
+      )
     } else {
       if (!webId) {
-        throw new Error("cannot set up spaces for null or undefined webId!")
+        throw new Error('cannot set up spaces for null or undefined webId!')
       }
       let spaces = res.spaces
       if (!spaces) {
@@ -499,23 +572,30 @@ export function useSpacesWithSetup(
           spaces = createSolidDataset()
         } else {
           throw new Error(
-            `spaces undefined but not a 404. HTTP response is ${res.error && res.error.statusCode} with error ${res.error}`
-          );
+            `spaces undefined but not a 404. HTTP response is ${
+              res.error && res.error.statusCode
+            } with error ${res.error}`
+          )
         }
       }
       if (!getMetaSpace(spaces)) {
         spaces = setMetaSpace(spaces, createMetaSpace(webId, profile))
       }
       if (getSpaceAll(spaces).length <= 0) {
-        const homeSpace = createSpaceInSpaces(spaces, HomeSpaceSlug, webId, HomeSpaceDefaultName)
+        const homeSpace = createSpaceInSpaces(
+          spaces,
+          HomeSpaceSlug,
+          webId,
+          HomeSpaceDefaultName
+        )
         spaces = setSpace(spaces, homeSpace)
         spaces = await initializeSpace(spaces, HomeSpaceSlug, { fetch })
       }
       return res.saveSpaces(spaces)
     }
-  }, [webId, res, profile, fetch]);
-  res.setupDefaultSpaces = setup;
-  return res;
+  }, [webId, res, profile, fetch])
+  res.setupDefaultSpaces = setup
+  return res
 }
 
 export function useAppSettings(
@@ -523,11 +603,11 @@ export function useAppSettings(
   appNamespace: Slug,
   appName: Slug
 ): AppSettingsResult {
-  const { profile } = useProfile(webId);
+  const { profile } = useProfile(webId)
   const res = useThing(
     appSettingsUrl(profile, appNamespace, appName)
-  ) as AppSettingsResult;
-  res.settings = res.thing;
-  res.saveSettings = res.save;
-  return res;
+  ) as AppSettingsResult
+  res.settings = res.thing
+  res.saveSettings = res.save
+  return res
 }

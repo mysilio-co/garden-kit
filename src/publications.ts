@@ -1,21 +1,17 @@
-import {
-  buildThing,
-} from '@inrupt/solid-client/thing/build';
-import {
-  setThing,
-  getThingAll,
-} from '@inrupt/solid-client/thing/thing';
-import {
-  createSolidDataset,
-} from '@inrupt/solid-client/resource/solidDataset';
-import {
-  getStringNoLocale,
-} from '@inrupt/solid-client/thing/get';
+import { buildThing } from '@inrupt/solid-client/thing/build'
+import { setThing, getThingAll } from '@inrupt/solid-client/thing/thing'
+import { createSolidDataset } from '@inrupt/solid-client/resource/solidDataset'
+import { getStringNoLocale } from '@inrupt/solid-client/thing/get'
 
-import { IRI, UUID, getUUID, createThingWithUUID, hasRDFType } from '../utils/rdf';
-import { MY, SIOC } from "../vocab";
-import { RDF, SKOS, DCTERMS, OWL} from '@inrupt/vocab-common-rdf';
-
+import {
+  IRI,
+  UUID,
+  getUUID,
+  createThingWithUUID,
+  hasRDFType,
+} from '../utils/rdf'
+import { MY, SIOC } from '../vocab'
+import { RDF, SKOS, DCTERMS, OWL } from '@inrupt/vocab-common-rdf'
 
 /*
 Design:
@@ -26,17 +22,17 @@ each specified by a volume and issue number.
 
 */
 
-type Newsletter = Thing & {};
+type Newsletter = Thing & {}
 
 type SubscriberInfo = {
-  email: string;
-};
+  email: string
+}
 
-type Subscriber = Thing & {};
+type Subscriber = Thing & {}
 
-type Concept = Thing & {};
+type Concept = Thing & {}
 
-type Collection = Thing & {};
+type Collection = Thing & {}
 
 enum HTMLTemplate {
   ConceptPage = 'concept-page',
@@ -50,27 +46,27 @@ type ConceptPageConfig = {
 
 type CollectionPageConfig = {
   template: HTMLTemplate.CollectionPage
-  concept: IRI,
+  concept: IRI
   collection: IRI
 }
 
 type HTMLConfig = ConceptPageConfig | CollectionPageConfig
 
-type Edition = Thing & { };
+type Edition = Thing & {}
 
 export function createNewsletter(title: string) {
   return buildThing(createThingWithUUID())
     .addUrl(RDF.type, SIOC.Container)
     .addUrl(RDF.type, MY.News.Newsletter)
     .addStringNoLocale(DCTERMS.title, title)
-    .build();
+    .build()
 }
 
 export function addNewsletter(
   manifest: SolidDataset,
   title: string
 ): SolidDataset {
-  return setThing(manifest || createSolidDataset(), createNewsletter(title));
+  return setThing(manifest || createSolidDataset(), createNewsletter(title))
 }
 
 export function getNewsletter(manifest: SolidDataset, title: string): Thing {
@@ -78,12 +74,12 @@ export function getNewsletter(manifest: SolidDataset, title: string): Thing {
     manifest &&
     getThingAll(manifest)
       .filter((t) => {
-        return hasRDFType(t, MY.News.Newsletter);
+        return hasRDFType(t, MY.News.Newsletter)
       })
       .find((t) => {
-        return title === getStringNoLocale(t, DCTERMS.title);
+        return title === getStringNoLocale(t, DCTERMS.title)
       })
-  );
+  )
 }
 
 export function createSubscriber(newsletter: Newsletter, info: SubscriberInfo) {
@@ -91,7 +87,7 @@ export function createSubscriber(newsletter: Newsletter, info: SubscriberInfo) {
     .addUrl(RDF.type, SIOC.User)
     .addUrl(SIOC.subscriber_of, getUUID(newsletter))
     .addStringNoLocale(SIOC.email, info.email)
-    .build();
+    .build()
 }
 
 export function getSubscribers(
@@ -100,8 +96,8 @@ export function getSubscribers(
 ): Subscriber[] {
   return getThingAll(manifest).filter((t) => {
     hasRDFType(t, SIOC.User) &&
-      getUUID(newsletter) === getStringNoLocale(t, SIOC.subscriber_of);
-  });
+      getUUID(newsletter) === getStringNoLocale(t, SIOC.subscriber_of)
+  })
 }
 
 // use private datasets only
@@ -113,7 +109,7 @@ export function addSubscriberToNewsletter(
   return setThing(
     manifest || createSolidDataset(),
     createSubscriber(newsletter, subscriber)
-  );
+  )
 }
 
 export function addSubcribersToNewsletter(
@@ -121,7 +117,7 @@ export function addSubcribersToNewsletter(
   newsletter: Newsletter,
   subscribers: SubscriberInfo[]
 ): SolidDataset {
-  manifest = manifest || createSolidDataset();
+  manifest = manifest || createSolidDataset()
   for (const sub of subscribers) {
     manifest = addSubscriberToNewsletter(manifest, newsletter, sub)
   }
@@ -133,10 +129,10 @@ export function addNewsletterWithSubscribers(
   title: string,
   subscribers: SubscriberInfo[]
 ) {
-  const newsletter = createNewsletter(title);
-  manifest = setThing(manifest || createSolidDataset(), newsletter);
-  manifest = addSubcribersToNewsletter(manifest, newsletter, subscribers);
-  return manifest;
+  const newsletter = createNewsletter(title)
+  manifest = setThing(manifest || createSolidDataset(), newsletter)
+  manifest = addSubcribersToNewsletter(manifest, newsletter, subscribers)
+  return manifest
 }
 
 function newConceptPageConfigThing(concept: Concept): Thing {
@@ -144,7 +140,7 @@ function newConceptPageConfigThing(concept: Concept): Thing {
     .addUrl(RDF.type, MY.HTML.Config)
     .addUrl(MY.HTML.uses_template, HTMLTemplate.ConceptPage)
     .addUrl(MY.HTML.uses_concept, getUUID(concept))
-    .build();
+    .build()
 }
 
 function newCollectionPageConfigThing(
@@ -156,7 +152,7 @@ function newCollectionPageConfigThing(
     .addUrl(MY.HTML.uses_template, HTMLTemplate.CollectionPage)
     .addUrl(MY.HTML.uses_collection, getUUID(collection))
     .addUrl(MY.HTML.uses_concept, getUUID(concept))
-    .build();
+    .build()
 }
 
 export function newEdition(
@@ -167,8 +163,8 @@ export function newEdition(
 ): SolidDataset {
   const HTMLConfig = collection
     ? newCollectionPageConfigThing(concept, collection)
-    : newConceptPageConfigThing(concept);
-  manifest = setThing(manifest || createSolidDataset(), HTMLConfig);
+    : newConceptPageConfigThing(concept)
+  manifest = setThing(manifest || createSolidDataset(), HTMLConfig)
 
   const Edition = buildThing(createThingWithUUID())
     .addUrl(RDF.type, SIOC.Item)
@@ -176,9 +172,9 @@ export function newEdition(
     .addUrl(SIOC.has_container, getUUID(newsletter))
     .addUrl(SIOC.edition_of, getUUID(newsletter))
     .addUrl(MY.HTML.configured_by, getUUID(HTMLConfig))
-    .build();
+    .build()
 
-  return setThing(manifest, Edition);
+  return setThing(manifest, Edition)
 }
 
 export function newConceptPage() {}
