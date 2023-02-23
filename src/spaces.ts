@@ -11,7 +11,7 @@ import {
   buildThing,
   getStringNoLocale,
   UrlString,
-} from '@inrupt/solid-client';
+} from '@inrupt/solid-client'
 import {
   Profile,
   Container,
@@ -22,85 +22,88 @@ import {
   GardenFile,
   GardenSettings,
   Garden,
-} from './types';
-import { WS } from '@inrupt/vocab-solid-common';
-import { hasRDFType, slugToUrl } from './utils';
-import { RDF, DCTERMS } from '@inrupt/vocab-common-rdf';
-import { MY } from './vocab';
+} from './types'
+import { WS } from '@inrupt/vocab-solid-common'
+import { hasRDFType, slugToUrl } from './utils'
+import { RDF, DCTERMS } from '@inrupt/vocab-common-rdf'
+import { MY } from './vocab'
 
 export function getRootContainer(profile: Profile): Container {
-  const root = getUrl(profile, WS.storage);
+  const root = getUrl(profile, WS.storage)
   if (!root) {
     // TODO: Wha should we do if there is no storage set?
-    throw new Error('Profile has no storage predicate');
+    throw new Error('Profile has no storage predicate')
   } else {
-    return root;
+    return root
   }
 }
 
 export function defaultSpacePreferencesFile(
   root: Container
 ): SpacePreferencesFile {
-  return new URL('settings/prefs.ttl', root).toString();
+  return new URL('settings/prefs.ttl', root).toString()
 }
 
 export function setDefaultSpacePreferencesFile(profile: Profile) {
   const root = getRootContainer(profile)
-  const defaultUrl = root && defaultSpacePreferencesFile(root);
-  return setUrl(profile, WS.preferencesFile, defaultUrl);
+  const defaultUrl = root && defaultSpacePreferencesFile(root)
+  return setUrl(profile, WS.preferencesFile, defaultUrl)
 }
 
 export function getSpacePreferencesFile(
   profile: Profile
 ): SpacePreferencesFile | null {
-  const root = getRootContainer(profile);
-  const defaultUrl = root && defaultSpacePreferencesFile(root);
-  return getUrl(profile, WS.preferencesFile) || defaultUrl;
+  const root = getRootContainer(profile)
+  const defaultUrl = root && defaultSpacePreferencesFile(root)
+  return getUrl(profile, WS.preferencesFile) || defaultUrl
 }
 
 export function getContainer(space: Space): Container | null {
-  return getUrl(space, WS.storage);
+  return getUrl(space, WS.storage)
 }
 
 export function getGardenMap(
   spaces: SpacePreferences,
   space: Space
 ): { [key: GardenFile]: GardenSettings } {
-  const gardenUrls = getGardenFileAll(space);
-  const nursery = getNurseryFile(space);
-  const compost = getCompostFile(space);
+  const gardenUrls = getGardenFileAll(space)
+  const nursery = getNurseryFile(space)
+  const compost = getCompostFile(space)
   const allGardenUrls =
-    nursery && compost ? [...gardenUrls, nursery, compost] : gardenUrls;
+    nursery && compost ? [...gardenUrls, nursery, compost] : gardenUrls
   const gardenMap = allGardenUrls.reduce((gardenMap, gardenKey) => {
-    const gardenSettings = getThing(spaces, gardenKey);
-    return { ...gardenMap, [gardenKey as string]: gardenSettings };
-  }, {});
+    const gardenSettings = getThing(spaces, gardenKey)
+    return { ...gardenMap, [gardenKey as string]: gardenSettings }
+  }, {})
 
-  return gardenMap;
+  return gardenMap
 }
 
 export function getGardenFileAll(space: Space): GardenFile[] {
   const files = [
-    getNurseryFile(space), getPublicFile(space), getPrivateFile(space), getCompostFile(space),
-    ...getUrlAll(space, MY.Garden.hasGarden)
-  ];
-  return files.filter(x => !!x) as GardenFile[]
+    getNurseryFile(space),
+    getPublicFile(space),
+    getPrivateFile(space),
+    getCompostFile(space),
+    ...getUrlAll(space, MY.Garden.hasGarden),
+  ]
+  return files.filter((x) => !!x) as GardenFile[]
 }
 
 export function getCompostFile(space: Space): GardenFile | null {
-  return getUrl(space, MY.Garden.hasCompost);
+  return getUrl(space, MY.Garden.hasCompost)
 }
 
 export function getNurseryFile(space: Space): GardenFile | null {
-  return getUrl(space, MY.Garden.hasNursery);
+  return getUrl(space, MY.Garden.hasNursery)
 }
 
 export function getPublicFile(space: Space): GardenFile | null {
-  return getUrl(space, MY.Garden.hasPublic);
+  return getUrl(space, MY.Garden.hasPublic)
 }
 
 export function getPrivateFile(space: Space): GardenFile | null {
-  return getUrl(space, MY.Garden.hasPrivate);
+  return getUrl(space, MY.Garden.hasPrivate)
 }
 
 export function getSpaceSlug(space: Space): UrlString | null {
@@ -120,27 +123,27 @@ export function getFileStorage(space: Space): UrlString | null {
 }
 
 export function getSpaceAll(spaces: SpacePreferences): Space[] {
-  return getThingAll(spaces).filter(isSpace);
+  return getThingAll(spaces).filter(isSpace)
 }
 
 export function isSpace(thing: Thing): boolean {
-  return hasRDFType(thing, MY.Garden.Space);
+  return hasRDFType(thing, MY.Garden.Space)
 }
 
 export function isMetaSpace(thing: Thing): boolean {
-  return hasRDFType(thing, MY.Garden.MetaSpace);
+  return hasRDFType(thing, MY.Garden.MetaSpace)
 }
 
 export function getSpace(spaces: SpacePreferences, slug: Slug): Space | null {
-  const thingUrl = slugToUrl(spaces, slug);
-  return (spaces && thingUrl) ? getThing(spaces, thingUrl) : null;
+  const thingUrl = slugToUrl(spaces, slug)
+  return spaces && thingUrl ? getThing(spaces, thingUrl) : null
 }
 
 export function setSpace(
   spaces: SpacePreferences,
   space: Space
 ): SpacePreferences {
-  return setThing(spaces, space);
+  return setThing(spaces, space)
 }
 
 export function createSpace(
@@ -149,10 +152,10 @@ export function createSpace(
   slug: Slug,
   title: string,
   gardenUrls: {
-    private: GardenFile;
-    public: GardenFile;
-    nursery: GardenFile;
-    compost: GardenFile;
+    private: GardenFile
+    public: GardenFile
+    nursery: GardenFile
+    compost: GardenFile
   }
 ): Space {
   return buildThing(createThing({ name: slug }))
@@ -177,45 +180,51 @@ export function createSpace(
       MY.Garden.hasGnomesManifest,
       new URL('gnomes.ttl', container).toString()
     )
-    .build();
+    .build()
 }
 
-export function gardenMetadataInSpacePrefs(space: Space, spacePrefs: SpacePreferences): GardenSettings[] | null {
+export function gardenMetadataInSpacePrefs(
+  space: Space,
+  spacePrefs: SpacePreferences
+): GardenSettings[] | null {
   const gardenUrls = getGardenFileAll(space)
-  return gardenUrls && gardenUrls.map(gardenUrl => {
-    return getThing(spacePrefs, gardenUrl) as GardenSettings
-  })
+  return (
+    gardenUrls &&
+    gardenUrls.map((gardenUrl) => {
+      return getThing(spacePrefs, gardenUrl) as GardenSettings
+    })
+  )
 }
 
-export const MetaSpaceSlug = 'spaces';
-export const HomeSpaceSlug = 'home';
-export const HomeSpaceDefaultName = 'Home';
+export const MetaSpaceSlug = 'spaces'
+export const HomeSpaceSlug = 'home'
+export const HomeSpaceDefaultName = 'Home'
 export function getMetaSpace(spaces: SpacePreferences): Space | null {
-  return getSpace(spaces, MetaSpaceSlug);
+  return getSpace(spaces, MetaSpaceSlug)
 }
 
 export function setMetaSpace(
   spaces: SpacePreferences,
   space: Space
 ): SpacePreferences {
-  console.assert(isMetaSpace(space));
-  return setSpace(spaces, space);
+  console.assert(isMetaSpace(space))
+  return setSpace(spaces, space)
 }
 
 export function hasRequiredSpaces(spaces: SpacePreferences): boolean {
-  return !!getMetaSpace(spaces) && getSpaceAll(spaces).length > 0;
+  return !!getMetaSpace(spaces) && getSpaceAll(spaces).length > 0
 }
 
 export function createMetaSpace(holder: WebId, profile: Profile) {
-  const root = getRootContainer(profile);
+  const root = getRootContainer(profile)
   if (root) {
     return buildThing(createThing({ name: MetaSpaceSlug }))
       .addUrl(MY.Garden.holder, holder)
       .addUrl(RDF.type, WS.MasterWorkspace)
       .addUrl(RDF.type, MY.Garden.MetaSpace)
       .addUrl(WS.storage, new URL('spaces/', root).toString())
-      .build();
+      .build()
   } else {
-    throw new Error(`No storage found in WebID: ${holder}`);
+    throw new Error(`No storage found in WebID: ${holder}`)
   }
 }
