@@ -1,8 +1,8 @@
-import namespace from '@rdfjs/namespace';
+import namespace from '@rdfjs/namespace'
 
-const g = namespace('https://vocab.mysilio.com/my/garden#');
-export const noteNSUrl = 'https://vocab.mysilio.com/my/note#';
-export const noteNS = namespace(noteNSUrl);
+const g = namespace('https://vocab.mysilio.com/my/garden#')
+export const noteNSUrl = 'https://vocab.mysilio.com/my/note#'
+export const noteNS = namespace(noteNSUrl)
 export const MY = {
   // The namespace library will automatically generate terms based on the property name
   // i.e. MY.scratch.fooo will be a NamedNode representing `.../scratch#fooo`
@@ -63,9 +63,9 @@ export const MY = {
 
     hasFuseIndex: g`hasFuseIndex`, // a link to a saved json index for use with Fuse.js
   },
-};
+}
 
-const sioc = namespace('http://rdfs.org/sioc/ns#');
+const sioc = namespace('http://rdfs.org/sioc/ns#')
 export const SIOC = {
   Community: sioc`Community`,
   Site: sioc`Site`,
@@ -89,4 +89,4 @@ export const SIOC = {
   moderator_of: sioc`moderator_of`, // Container
   creator_of: sioc`creatpr_of`, // Item
   email: sioc`email`,
-};
+}
