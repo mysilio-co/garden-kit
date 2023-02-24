@@ -5,14 +5,29 @@ import {
   createAclFromFallbackAcl,
   hasFallbackAcl,
   getFileWithAcl,
+  getResourceInfoWithAcl,
+  hasResourceAcl,
+  createAcl,
+  Access,
 } from '@inrupt/solid-client/acl/acl'
-import { setPublicResourceAccess } from '@inrupt/solid-client/acl/class'
+import {
+  setPublicDefaultAccess,
+  setPublicResourceAccess,
+} from '@inrupt/solid-client/acl/class'
 import { Thing, UrlString } from '@inrupt/solid-client/interfaces'
-import { getSourceUrl } from '@inrupt/solid-client/resource/resource'
+import {
+  FetchError,
+  getSourceUrl,
+} from '@inrupt/solid-client/resource/resource'
 import { getThing } from '@inrupt/solid-client/thing/thing'
 
 import { getTitle } from './utils'
-import { Garden } from './types'
+import { AccessConfig, Garden } from './types'
+import {
+  overwriteFile,
+  setAgentDefaultAccess,
+  setAgentResourceAccess,
+} from '@inrupt/solid-client'
 
 export async function setPublicAccessBasedOnGarden(
   urls: UrlString[],
@@ -42,28 +57,64 @@ export async function setPublicAccessBasedOnGarden(
   }
 }
 
-export async function setPublicAccess(
+export async function setAccess(
   resourceUrl: UrlString,
-  access: any,
+  access: AccessConfig,
   options: any
 ) {
-  const resource = await getFileWithAcl(resourceUrl, options)
-  if (hasAccessibleAcl(resource)) {
-    let acl = getResourceAcl(resource)
-    if (!acl && hasFallbackAcl(resource)) {
-      acl = createAclFromFallbackAcl(resource)
+  if (resourceUrl) {
+    let resourceWithAcl
+    try {
+      resourceWithAcl = await getFileWithAcl(resourceUrl, options)
+    } catch (e) {
+      if (e instanceof FetchError && e.statusCode === 404) {
+        // create empty file
+        await overwriteFile(resourceUrl, new Blob([]), options)
+        resourceWithAcl = await getResourceInfoWithAcl(resourceUrl, options)
+      } else {
+        throw e
+      }
     }
-    if (acl) {
-      acl = setPublicResourceAccess(acl, access)
-      return saveAclFor(resource, acl, options)
-    } else {
+    let acl
+    if (!hasAccessibleAcl(resourceWithAcl)) {
       throw new Error(
-        `could not find resource acl or fallback acl for resource: ${resourceUrl}`
+        'The current user does not have permission to change access rights to this Resource.'
       )
+    } else if (hasResourceAcl(resourceWithAcl)) {
+      acl = getResourceAcl(resourceWithAcl)
+    } else if (hasFallbackAcl(resourceWithAcl)) {
+      acl = createAclFromFallbackAcl(resourceWithAcl)
+    } else {
+      acl = createAcl(resourceWithAcl)
     }
+    // In most cases, we want to set both the default access for a folder
+    // and the resource access to the container itself.
+    if (access.public) {
+      acl = setPublicDefaultAccess(acl, access.access)
+      acl = setPublicResourceAccess(acl, access.access)
+    } else {
+      acl = setAgentDefaultAccess(acl, access.agent, access.access)
+      acl = setAgentResourceAccess(acl, access.agent, access.access)
+    }
+    await saveAclFor(resourceWithAcl, acl, options)
   } else {
-    throw new Error(
-      "getSolidDatasetWithAcl returned resource that did not pass hasAccessibleAcl, super weird, don't know what to do, bail bail bail"
-    )
+    throw new Error('Cannot ensureAcl for unknown resource')
   }
+}
+
+export async function setAgentAccess(
+  resourceUrl: UrlString,
+  agent: UrlString,
+  access: Access,
+  options: any
+) {
+  return await setAccess(resourceUrl, { agent, access }, options)
+}
+
+export async function setPublicAccess(
+  resourceUrl: UrlString,
+  access: Access,
+  options: any
+) {
+  return await setAccess(resourceUrl, { public: true, access }, options)
 }

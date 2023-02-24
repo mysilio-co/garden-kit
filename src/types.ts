@@ -1,4 +1,11 @@
-import { Thing, SolidDataset, Url, UrlString } from '@inrupt/solid-client'
+import {
+  Thing,
+  SolidDataset,
+  Url,
+  UrlString,
+  WebId,
+  Access,
+} from '@inrupt/solid-client'
 
 export type Urn = Url
 export type UUID = Urn
@@ -16,6 +23,7 @@ export type Base58Slug = Slug
 
 export type Profile = Thing
 export type AppSettings = Thing
+export type WebhookConfig = Thing
 
 export type Space = Thing
 export type SpacePreferences = SolidDataset
@@ -43,3 +51,14 @@ export type FileConcept = Concept
 export type BookmarkConcept = Concept
 export type PersonConcept = Concept
 export type NoteBody = SolidDataset
+
+export type AccessConfig = PublicAccessConfig | AgentAccessConfig
+export type PublicAccessConfig = {
+  public: true
+  access: Access
+}
+export type AgentAccessConfig = {
+  public?: false
+  agent: WebId
+  access: Access
+}

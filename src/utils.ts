@@ -15,6 +15,9 @@ import {
   isThingLocal,
   WebId,
   Url,
+  createSolidDataset,
+  setThing,
+  toRdfJsDataset,
 } from '@inrupt/solid-client'
 import { RDF, OWL } from '@inrupt/vocab-common-rdf'
 import * as uuid from 'uuid'
